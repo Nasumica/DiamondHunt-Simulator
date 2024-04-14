@@ -81,19 +81,24 @@ func (deck *Deck) Deal(cards int) (deal Cards) {
 	return
 }
 
+func SpeedTest(n int) {
+	start := time.Now()
+	var deck Deck
+	deck.Init()
+	for i := 0; i < n; i++ {
+		deck.Reset()
+		deck.Deal(8)
+	}
+	elapsed := time.Since(start).Seconds()
+	speed := float64(n) / elapsed
+	fmt.Printf("elapsed = %.3f\",  speed = %.0f deals / s\n", elapsed, speed)
+}
+
 // Dealer of cards in use.
 var Dealer Deck
 
 // Ready to use.
 func init() {
 	Dealer.Init()
-	n := milliard
-	start := time.Now()
-	for i := 0; i < n; i++ {
-		Dealer.Reset()
-		Dealer.Deal(8)
-	}
-	elapsed := time.Since(start).Seconds()
-	speed := float64(n) / elapsed
-	fmt.Printf("elapsed = %.3f\",  speed = %.0f deals / s\n", elapsed, speed)
+	SpeedTest(million)
 }

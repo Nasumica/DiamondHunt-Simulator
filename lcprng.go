@@ -11,8 +11,10 @@ import (
 )
 
 type (
-	array = []int
-	grid  = []array
+	array  = []int
+	grid   = []array
+	number = float64
+	vector = []number
 )
 
 // # Linear congruential pseudo-random numbers generator
@@ -229,7 +231,7 @@ func (rnd *LCPRNG) Item(a *array) int {
 }
 
 // Random value from non-empty array else NaN.
-func (rnd *LCPRNG) Value(values *[]float64) float64 {
+func (rnd *LCPRNG) Value(values *vector) number {
 	if n := rnd.Choice(len(*values)); n < 0 {
 		return math.NaN()
 	} else {
@@ -280,23 +282,23 @@ func (rnd *LCPRNG) Weighted(w *array) int {
 }
 
 // Uniform random number in range (0, 1).
-func (rnd *LCPRNG) Random() float64 {
+func (rnd *LCPRNG) Random() number {
 	var n uint64
 	for n == 0 {
 		n = rnd.Next() >> 11 // trim to 53 bits mantissa
 	}
-	const ε float64 = 0x1p-53 // ε = 2⁻⁵³
-	return ε * float64(n)
+	const ε number = 0x1p-53 // ε = 2⁻⁵³
+	return ε * number(n)
 }
 
 // Random angle (0, 2π).
-func (rnd *LCPRNG) Angle() float64 {
-	const τ float64 = 2 * math.Pi // τ = 2π = 0x3243F6A8885A3p-47
+func (rnd *LCPRNG) Angle() number {
+	const τ number = 2 * math.Pi // τ = 2π = 0x3243F6A8885A3p-47
 	return τ * rnd.Random()
 }
 
 // Uniform random number in range (0, x).
-func (rnd *LCPRNG) Uniform(x float64) float64 {
+func (rnd *LCPRNG) Uniform(x number) number {
 	if x != 0 {
 		x *= rnd.Random()
 	}
@@ -304,24 +306,24 @@ func (rnd *LCPRNG) Uniform(x float64) float64 {
 }
 
 // Uniform random number in range (a, b).
-func (rnd *LCPRNG) Range(a, b float64) float64 {
+func (rnd *LCPRNG) Range(a, b number) number {
 	return a + rnd.Uniform(b-a)
 }
 
 // True with probability p.
-func (rnd *LCPRNG) Bernoulli(p float64) bool {
+func (rnd *LCPRNG) Bernoulli(p number) bool {
 	return (p >= 1) || (p > 0 && p > rnd.Random())
 }
 
 // Binomial distribution random variable.
-func (rnd *LCPRNG) Binomial(n int, p float64) (b int) {
+func (rnd *LCPRNG) Binomial(n int, p number) (b int) {
 	if p <= 0 || n <= 0 {
 		return 0
 	} else if p >= 1 {
 		return n
 	}
 	const limit = 50
-	x, q := float64(n), 1-p
+	x, q := number(n), 1-p
 	if (n > limit) && (x*p > 9*q) && (x*q > 9*p) { // Central Limit Theorem
 		x *= p           // mean
 		q *= x           // variance
@@ -340,7 +342,7 @@ func (rnd *LCPRNG) Binomial(n int, p float64) (b int) {
 }
 
 // Exponential distribution random variable.
-func (rnd *LCPRNG) Exponential(ƛ ...float64) float64 {
+func (rnd *LCPRNG) Exponential(ƛ ...number) number {
 	e := -math.Log1p(-rnd.Random()) // domain = [0, 36.7368]
 	if len(ƛ) > 0 {
 		e /= ƛ[0]
@@ -349,7 +351,7 @@ func (rnd *LCPRNG) Exponential(ƛ ...float64) float64 {
 }
 
 // Pascal (negative binomial) distribution random variable.
-func (rnd *LCPRNG) Pascal(r int, p float64) (n float64) {
+func (rnd *LCPRNG) Pascal(r int, p number) (n number) {
 	if r <= 0 || p <= 0 {
 		n = math.Inf(1)
 	} else if p < 1 {
@@ -363,12 +365,12 @@ func (rnd *LCPRNG) Pascal(r int, p float64) (n float64) {
 // Geometric distribution random variable.
 //
 //	p(n) = p · (1 - p)ⁿ
-func (rnd *LCPRNG) Geometric(p float64) float64 {
+func (rnd *LCPRNG) Geometric(p number) number {
 	return rnd.Pascal(1, p)
 }
 
 // Rayleigh distribution random variable.
-func (rnd *LCPRNG) Rayleigh(σ float64) float64 {
+func (rnd *LCPRNG) Rayleigh(σ number) number {
 	if σ != 0 {
 		σ *= math.Sqrt(2 * rnd.Exponential()) // Box-Muller transform
 	}
@@ -379,7 +381,7 @@ func (rnd *LCPRNG) Rayleigh(σ float64) float64 {
 //
 //	μ = 0
 //	σ² = 1/2
-func (rnd *LCPRNG) Arcus() float64 {
+func (rnd *LCPRNG) Arcus() number {
 	return math.Sin(rnd.Angle())
 }
 
@@ -387,7 +389,7 @@ func (rnd *LCPRNG) Arcus() float64 {
 //
 //	μ = 1/2
 //	σ² = 1/8
-func (rnd *LCPRNG) ArcSine() float64 {
+func (rnd *LCPRNG) ArcSine() number {
 	return (rnd.Arcus() + 1) / 2
 }
 
@@ -395,12 +397,12 @@ func (rnd *LCPRNG) ArcSine() float64 {
 //
 //	μ = 0
 //	σ = 1
-func (rnd *LCPRNG) Gauss() float64 {
+func (rnd *LCPRNG) Gauss() number {
 	return rnd.Rayleigh(rnd.Arcus()) // domain = [±8.57167]
 }
 
 // Normal distribution random variable.
-func (rnd *LCPRNG) Normal(μ, σ float64) float64 {
+func (rnd *LCPRNG) Normal(μ, σ number) number {
 	if σ != 0 {
 		σ *= rnd.Gauss()
 	}
@@ -408,12 +410,12 @@ func (rnd *LCPRNG) Normal(μ, σ float64) float64 {
 }
 
 // Discrete normal distribution random variable.
-func (rnd *LCPRNG) Discrete(μ, σ float64) int {
+func (rnd *LCPRNG) Discrete(μ, σ number) int {
 	return int(math.Round(rnd.Normal(μ, σ)))
 }
 
 // Skew-normal distribution random variable.
-func (rnd *LCPRNG) SkewNormal(ξ, ω, ɑ float64) (s float64) {
+func (rnd *LCPRNG) SkewNormal(ξ, ω, ɑ number) (s number) {
 	const limit = 1024
 	if ω != 0 {
 		switch { // some special cases
@@ -444,17 +446,17 @@ func (rnd *LCPRNG) SkewNormal(ξ, ω, ɑ float64) (s float64) {
 }
 
 // Log-normal distribution random variable.
-func (rnd *LCPRNG) LogNormal(μ, σ float64) float64 {
+func (rnd *LCPRNG) LogNormal(μ, σ number) number {
 	return math.Exp(rnd.Normal(μ, σ))
 }
 
 // Exponentially modified normal distribution random variable.
-func (rnd *LCPRNG) ExpNormal(μ, σ, ƛ float64) float64 {
+func (rnd *LCPRNG) ExpNormal(μ, σ, ƛ number) number {
 	return rnd.Normal(μ, σ) + rnd.Exponential(ƛ)
 }
 
 // Laplace  distribution random variable.
-func (rnd *LCPRNG) Laplace(μ, b float64) (l float64) {
+func (rnd *LCPRNG) Laplace(μ, b number) (l number) {
 	if b > 0 {
 		l = b * rnd.Exponential()
 		if rnd.Bernoulli(0.5) {
@@ -466,7 +468,7 @@ func (rnd *LCPRNG) Laplace(μ, b float64) (l float64) {
 }
 
 // Cauchy  distribution random variable.
-func (rnd *LCPRNG) Cauchy(x0, ɣ float64) (c float64) {
+func (rnd *LCPRNG) Cauchy(x0, ɣ number) (c number) {
 	if ɣ > 0 {
 		c = ɣ * math.Tan(rnd.Angle()) // due to inexact π: tan(π/2) = 16331239353195392
 	}
@@ -475,7 +477,7 @@ func (rnd *LCPRNG) Cauchy(x0, ɣ float64) (c float64) {
 }
 
 // Tukey distribution random variable.
-func (rnd *LCPRNG) Tukey(ƛ float64) float64 {
+func (rnd *LCPRNG) Tukey(ƛ number) number {
 	p := rnd.Random()
 	q := 1 - p
 	if ƛ == 0 {
@@ -486,7 +488,7 @@ func (rnd *LCPRNG) Tukey(ƛ float64) float64 {
 }
 
 // Logistic distribution random variable.
-func (rnd *LCPRNG) Logistic(μ, s float64) (l float64) {
+func (rnd *LCPRNG) Logistic(μ, s number) (l number) {
 	if s > 0 {
 		l = s * rnd.Tukey(0)
 	}
@@ -497,7 +499,7 @@ func (rnd *LCPRNG) Logistic(μ, s float64) (l float64) {
 // Poisson distribution random variable.
 //
 //	p(n) = exp(-ƛ) ✶ ƛⁿ / n!
-func (rnd *LCPRNG) Poisson(ƛ float64) (n int) {
+func (rnd *LCPRNG) Poisson(ƛ number) (n int) {
 	const limit = 256
 	if ƛ > 0 {
 		if ƛ < limit { // Knuth method
@@ -515,7 +517,7 @@ func (rnd *LCPRNG) Poisson(ƛ float64) (n int) {
 }
 
 // Skellam distribution random variable.
-func (rnd *LCPRNG) Skellam(μ1, μ2 float64) (n int) {
+func (rnd *LCPRNG) Skellam(μ1, μ2 number) (n int) {
 	if μ1 >= 0 && μ2 >= 0 {
 		n = rnd.Poisson(μ1) - rnd.Poisson(μ2)
 	}
@@ -523,7 +525,7 @@ func (rnd *LCPRNG) Skellam(μ1, μ2 float64) (n int) {
 }
 
 // Hermite distribution random variable.
-func (rnd *LCPRNG) Hermite(ɑ1, ɑ2 float64) (n int) {
+func (rnd *LCPRNG) Hermite(ɑ1, ɑ2 number) (n int) {
 	if ɑ1 >= 0 && ɑ2 >= 0 {
 		n = rnd.Poisson(ɑ1) + 2*rnd.Poisson(ɑ2)
 	}
@@ -533,7 +535,7 @@ func (rnd *LCPRNG) Hermite(ɑ1, ɑ2 float64) (n int) {
 // χ² distribution random variable with k degrees of freedom.
 //
 // Sum of k squared Gauss randoms.
-func (rnd *LCPRNG) ChiSquared(k int) (x float64) {
+func (rnd *LCPRNG) ChiSquared(k int) (x number) {
 	const limit = 256
 	if k < limit {
 		if k > 1 {
@@ -546,7 +548,7 @@ func (rnd *LCPRNG) ChiSquared(k int) (x float64) {
 			x += rnd.Exponential() * (rnd.Arcus() + 1)
 		}
 	} else { // Central Limit Theorem
-		x = float64(k)
+		x = number(k)
 		x = rnd.Normal(x, math.Sqrt(2*x))
 	}
 	return
@@ -555,7 +557,7 @@ func (rnd *LCPRNG) ChiSquared(k int) (x float64) {
 // χ distribution random variable with k degrees of freedom.
 //
 // Length of k-dimensional vector with Gauss random coordinates.
-func (rnd *LCPRNG) Chi(k int) (x float64) {
+func (rnd *LCPRNG) Chi(k int) (x number) {
 	switch { // speed up by special cases
 	case k == 1:
 		x = math.Abs(rnd.Gauss()) // Half-Normal distribution
@@ -568,7 +570,7 @@ func (rnd *LCPRNG) Chi(k int) (x float64) {
 }
 
 // Erlang distribution random variable.
-func (rnd *LCPRNG) Erlang(k int, ƛ float64) float64 {
+func (rnd *LCPRNG) Erlang(k int, ƛ number) number {
 	return rnd.ChiSquared(2*k) / (2 * ƛ)
 }
 
@@ -578,7 +580,7 @@ func (rnd *LCPRNG) Erlang(k int, ƛ float64) float64 {
 //
 //	μ = ɑ / β
 //	σ² = ɑ / β²
-func (rnd *LCPRNG) Gamma(ɑ float64, β ...float64) (g float64) {
+func (rnd *LCPRNG) Gamma(ɑ number, β ...number) (g number) {
 	if ɑ > 0 {
 		t, a := math.Modf(2 * ɑ) // trunc & frac
 		if a > 0 {
@@ -603,7 +605,7 @@ func (rnd *LCPRNG) Gamma(ɑ float64, β ...float64) (g float64) {
 }
 
 // Β distribution random variable.
-func (rnd *LCPRNG) Beta(ɑ, β float64) (b float64) {
+func (rnd *LCPRNG) Beta(ɑ, β number) (b number) {
 	if ɑ > 0 && β > 0 {
 		switch { // some special cases
 		case ɑ == 1 && β == 1:
@@ -627,7 +629,7 @@ func (rnd *LCPRNG) Beta(ɑ, β float64) (b float64) {
 // Β' distribution random variable.
 //
 //	Γ(α) / Γ(β) = Γ(α, Γ(β))
-func (rnd *LCPRNG) BetaPrime(ɑ, β float64) (b float64) {
+func (rnd *LCPRNG) BetaPrime(ɑ, β number) (b number) {
 	b = rnd.Beta(ɑ, β)
 	if b != 0 && b != 1 {
 		b /= 1 - b
@@ -645,7 +647,7 @@ func (rnd *LCPRNG) BetaPrime(ɑ, β float64) (b float64) {
 // For ν -> ∞, σ -> 1
 //
 //	StudentsT(∞) = Normal(0, 1) = Gauss()
-func (rnd *LCPRNG) StudentsT(ν float64) (t float64) {
+func (rnd *LCPRNG) StudentsT(ν number) (t number) {
 	if ν > 0 {
 		t = rnd.Gauss()
 		if !math.IsInf(ν, 1) {
@@ -659,7 +661,7 @@ func (rnd *LCPRNG) StudentsT(ν float64) (t float64) {
 // Snedecor's F-distribution random variable.
 //
 //	(χ²(d₁) / d₁) / (χ²(d₂) / d₂)
-func (rnd *LCPRNG) SnedecorsF(d1, d2 float64) (f float64) {
+func (rnd *LCPRNG) SnedecorsF(d1, d2 number) (f number) {
 	if d1 > 0 && d2 > 0 {
 		f = rnd.BetaPrime(d1/2, d2/2) * d2 / d1
 	}
@@ -673,13 +675,13 @@ func (rnd *LCPRNG) SnedecorsF(d1, d2 float64) (f float64) {
 //	s = Σ ɑ
 //	μᵢ = ɑᵢ / s
 //	σᵢ = sqrt(ɑᵢ ✶ (s - ɑᵢ) / (s + 1)) / s
-func (rnd *LCPRNG) Dirichlet(ɑ ...float64) (d []float64) {
+func (rnd *LCPRNG) Dirichlet(ɑ ...number) (d vector) {
 	if n := len(ɑ); n > 0 {
-		d = make([]float64, n)
+		d = make(vector, n)
 		if n == 1 {
 			d[0] = 1
 		} else {
-			var s float64
+			var s number
 			for i, a := range ɑ {
 				d[i] = rnd.Gamma(a)
 				s += d[i]
@@ -711,7 +713,7 @@ func (rnd *LCPRNG) Dirichlet(ɑ ...float64) (d []float64) {
 //	T (room temperature) = 25°C
 //
 //	Maxwellian(32, 25)
-func (rnd *LCPRNG) Maxwellian(M, T float64) (v float64) {
+func (rnd *LCPRNG) Maxwellian(M, T number) (v number) {
 	const (
 		O = -273.15       // Absolute zero (°C)
 		c = 299792458     // Speed of light (m/s)
@@ -735,7 +737,7 @@ func (rnd *LCPRNG) Maxwellian(M, T float64) (v float64) {
 }
 
 // Inverse Gausian distribution random variable.
-func (rnd *LCPRNG) Wald(μ, ƛ float64) (w float64) {
+func (rnd *LCPRNG) Wald(μ, ƛ number) (w number) {
 	if μ > 0 && ƛ > 0 {
 		ƛ *= 2
 		w = μ * rnd.ChiSquared(1)
@@ -749,7 +751,7 @@ func (rnd *LCPRNG) Wald(μ, ƛ float64) (w float64) {
 }
 
 // Pareto  distribution random variable.
-func (rnd *LCPRNG) Pareto(xm, ɑ float64) (p float64) {
+func (rnd *LCPRNG) Pareto(xm, ɑ number) (p number) {
 	if xm > 0 && ɑ > 0 {
 		p = xm * math.Exp(rnd.Exponential(ɑ))
 	}
@@ -757,12 +759,12 @@ func (rnd *LCPRNG) Pareto(xm, ɑ float64) (p float64) {
 }
 
 // Lomax  distribution random variable.
-func (rnd *LCPRNG) Lomax(ɑ, ƛ float64) float64 {
+func (rnd *LCPRNG) Lomax(ɑ, ƛ number) number {
 	return rnd.Pareto(ƛ, ɑ) - ƛ
 }
 
 // Weibull  distribution random variable.
-func (rnd *LCPRNG) Weibull(ƛ, k float64) (w float64) {
+func (rnd *LCPRNG) Weibull(ƛ, k number) (w number) {
 	if ƛ > 0 && k > 0 {
 		w = ƛ * math.Pow(rnd.Exponential(), 1/k)
 	}
@@ -770,7 +772,7 @@ func (rnd *LCPRNG) Weibull(ƛ, k float64) (w float64) {
 }
 
 // Logarithmic-uniform random variable.
-func (rnd *LCPRNG) Logarithmic(a, b float64) (l float64) {
+func (rnd *LCPRNG) Logarithmic(a, b number) (l number) {
 	if a > b {
 		a, b = b, a
 	}
@@ -798,7 +800,7 @@ func (rnd *LCPRNG) Benford(m, n int) (b int) {
 		if m == n {
 			b = m
 		} else {
-			b = int(math.Exp(rnd.Range(math.Log(float64(m)), math.Log(float64(n+1)))))
+			b = int(math.Exp(rnd.Range(math.Log(number(m)), math.Log(number(n+1)))))
 			if b < m {
 				b = m
 			} else if b > n {
@@ -810,7 +812,7 @@ func (rnd *LCPRNG) Benford(m, n int) (b int) {
 }
 
 // Irwin-Hall distribution random variable.
-func (rnd *LCPRNG) IrwinHall(x float64) (h float64) {
+func (rnd *LCPRNG) IrwinHall(x number) (h number) {
 	if x > 0 {
 		const limit = 64
 		if x < limit {
@@ -827,7 +829,7 @@ func (rnd *LCPRNG) IrwinHall(x float64) (h float64) {
 }
 
 // Bates distribution random variable.
-func (rnd *LCPRNG) Bates(x, a, b float64) (c float64) {
+func (rnd *LCPRNG) Bates(x, a, b number) (c number) {
 	if x > 0 {
 		c = (b - a) * rnd.IrwinHall(x) / x
 	}
@@ -836,7 +838,7 @@ func (rnd *LCPRNG) Bates(x, a, b float64) (c float64) {
 }
 
 // Triangulat distribution random variable.
-func (rnd *LCPRNG) Triangular(a, b, mode float64) (t float64) {
+func (rnd *LCPRNG) Triangular(a, b, mode number) (t number) {
 	if a > b {
 		a, b = b, a
 	}
@@ -1067,7 +1069,7 @@ func (rnd *LCPRNG) DoveTail(l, r *array) (d array) {
 func (rnd *LCPRNG) RiffleShuffle(deck *array) {
 	if n := len(*deck); n > 1 {
 		// by Bayer & Diaconis (n = 8 for standard deck)
-		for n = int(math.Log2(float64(n)) * 1.5); n > 0; n-- {
+		for n = int(math.Log2(number(n)) * 1.5); n > 0; n-- {
 			l, r := rnd.CutDeck(deck)
 			(*deck) = rnd.DoveTail(&l, &r)
 		}
@@ -1088,7 +1090,7 @@ func (rnd *LCPRNG) Scatter(s, n int) (d array) {
 		d = make(array, n)
 		if s != 0 {
 			const l = 2 * 53 * math.Ln2
-			if n > 1 && math.Abs(float64(s)) < float64(n-1)*l { // Bernoulli method
+			if n > 1 && math.Abs(number(s)) < number(n-1)*l { // Bernoulli method
 				for ; s > 0; s-- {
 					d[rnd.Choice(n)]++
 				}
@@ -1097,7 +1099,7 @@ func (rnd *LCPRNG) Scatter(s, n int) (d array) {
 				}
 			} else { // Central Limit Theorem
 				for n > 1 {
-					t, c := float64(s), float64(n) // total and count
+					t, c := number(s), number(n) // total and count
 					n--
 					d[n] = rnd.Discrete(t/c, math.Sqrt(math.Abs(t)*(c-1))/c)
 					s -= d[n]
@@ -1110,7 +1112,7 @@ func (rnd *LCPRNG) Scatter(s, n int) (d array) {
 }
 
 // Random point on circle of radius r.
-func (rnd *LCPRNG) Circle(r float64) (x, y float64) {
+func (rnd *LCPRNG) Circle(r number) (x, y number) {
 	if r != 0 {
 		y, x = math.Sincos(rnd.Angle())
 		x, y = r*x, r*y
@@ -1119,12 +1121,12 @@ func (rnd *LCPRNG) Circle(r float64) (x, y float64) {
 }
 
 // Uniform random point in disc of radius r.
-func (rnd *LCPRNG) Disc(r float64) (x, y float64) {
+func (rnd *LCPRNG) Disc(r number) (x, y number) {
 	return rnd.Circle(r * math.Sqrt(rnd.Random()))
 }
 
 // Shooting on target bullet dispersion.
-func (rnd *LCPRNG) Target(dispersion float64) (x, y float64) {
+func (rnd *LCPRNG) Target(dispersion number) (x, y number) {
 	return rnd.Circle(rnd.Rayleigh(dispersion))
 }
 
@@ -1135,7 +1137,7 @@ func (rnd *LCPRNG) Dither(r, g, b byte) bool {
 		y = 0.715159645674898
 		z = 1 - (x + y)
 	)
-	gray := float64(r)*x + float64(g)*y + float64(b)*z
+	gray := number(r)*x + number(g)*y + number(b)*z
 	return rnd.Bernoulli(gray / 255)
 }
 
@@ -1143,7 +1145,7 @@ func (rnd *LCPRNG) Dither(r, g, b byte) bool {
 //
 //	μ = 1 - rtp
 //	σ = rtp
-func (rnd *LCPRNG) Edge(rtp float64) float64 {
+func (rnd *LCPRNG) Edge(rtp number) number {
 	if rtp > 0 {
 		return 1 - rtp*rnd.Exponential()
 	} else {
@@ -1244,15 +1246,15 @@ func MulInv64(o uint64) (r uint64) {
 }
 
 // n!
-func Factorial(n int) float64 {
-	return math.Gamma(float64(n + 1))
+func Factorial(n int) number {
+	return math.Gamma(number(n + 1))
 }
 
 // n! / (n - k)!
-func FallFact(n, k int) (f float64) {
+func FallFact(n, k int) (f number) {
 	if n < 0 || k <= n {
 		for f = 1; k > 0; n, k = n-1, k-1 {
-			f *= float64(n)
+			f *= number(n)
 		}
 	}
 	return
@@ -1261,7 +1263,7 @@ func FallFact(n, k int) (f float64) {
 // Binomial coefficient.
 //
 //	n! / (n - k)! / k!
-func Binomial(n, k int) (b float64) {
+func Binomial(n, k int) (b number) {
 	b = 1
 	if n < 0 { // Newton extension
 		if k <= n {
@@ -1279,7 +1281,7 @@ func Binomial(n, k int) (b float64) {
 			k = l
 		}
 		for i := 1; i <= k; i, n = i+1, n-1 {
-			b = b * float64(n) / float64(i) // do not change
+			b = b * number(n) / number(i) // do not change
 		}
 	} else {
 		b = 0
@@ -1290,7 +1292,7 @@ func Binomial(n, k int) (b float64) {
 // Multinomial coefficient.
 //
 //	(k₀ + k₁ + k₂ + ··· )! / (k₀! ✶ k₁! ✶ k₂! ✶ ··· )
-func Multinomial(k ...int) (m float64) {
+func Multinomial(k ...int) (m number) {
 	m = 1
 	n := 0
 	for _, j := range k {
@@ -1307,7 +1309,7 @@ func Multinomial(k ...int) (m float64) {
 // Equivalent to Excel
 //
 //	HYPGEOMDIST(hits, draw, succ, size).
-func HypGeomDist(hits, draw, succ, size int) (prob float64) {
+func HypGeomDist(hits, draw, succ, size int) (prob number) {
 	if prob = Binomial(succ, hits); prob != 0 {
 		if prob *= Binomial(size-succ, draw-hits); prob != 0 {
 			prob /= Binomial(size, draw)
@@ -1317,7 +1319,7 @@ func HypGeomDist(hits, draw, succ, size int) (prob float64) {
 }
 
 // Calculate combination index and probability.
-func Ludus(sides int, dice ...int) (total, index int, prob float64) {
+func Ludus(sides int, dice ...int) (total, index int, prob number) {
 	if sides >= 0 {
 		{
 			var r LCPRNG
@@ -1338,7 +1340,7 @@ func Ludus(sides int, dice ...int) (total, index int, prob float64) {
 				l, c = d, 0
 			}
 			c += sides
-			prob = prob * float64(i+1) / float64(c)
+			prob = prob * number(i+1) / number(c)
 		}
 	}
 	return
