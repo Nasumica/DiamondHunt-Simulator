@@ -11,9 +11,9 @@ const (
 	billiard        = 1000 * billion
 	trilliard       = 1000 * trillion
 	quadrilliard    = 1000 * quadrillion
-	usa_billion     = milliard
-	usa_trillion    = billion
-	usa_quadrillion = billiard
+	usa_billion     = 1000 * million
+	usa_trillion    = 1000 * usa_billion
+	usa_quadrillion = 1000 * usa_trillion
 )
 
 func main() {
