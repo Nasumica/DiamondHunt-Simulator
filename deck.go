@@ -30,27 +30,27 @@ func (card *Card) Reveal() {
 
 type Pack = []int
 
-// My favourite deck of cards.
-type Piatnik struct {
+// Deck of cards.
+type Deck struct {
 	Croupier LCPRNG
 	Cards    Pack
 	Rest     int
 }
 
 // Initialize deck of cards.
-func (deck *Piatnik) Init() {
+func (deck *Deck) Init() {
 	deck.Croupier.Randomize()
 	deck.Cards = deck.Croupier.Deck()
 	deck.Reset()
 }
 
 // New deal.
-func (deck *Piatnik) Reset() {
+func (deck *Deck) Reset() {
 	deck.Rest = len(deck.Cards)
 }
 
 // Draw single card from deck.
-func (deck *Piatnik) Draw() (card Card) {
+func (deck *Deck) Draw() (card Card) {
 	if deck.Rest > 0 {
 		n := deck.Croupier.Choice(deck.Rest)
 		card.Index, card.Card = n, deck.Cards[n]
@@ -66,7 +66,7 @@ func (deck *Piatnik) Draw() (card Card) {
 type Cards = []Card
 
 // Deal cards from deck (Fisher-Yates).
-func (deck *Piatnik) Deal(cards int) (deal Cards) {
+func (deck *Deck) Deal(cards int) (deal Cards) {
 	if cards > 0 {
 		deal = make(Cards, cards)
 		for i := range deal {
@@ -76,10 +76,10 @@ func (deck *Piatnik) Deal(cards int) (deal Cards) {
 	return
 }
 
-// Deck of cards in use.
-var Deck Piatnik
+// Dealer of cards in use.
+var Dealer Deck
 
 // Ready to use.
 func init() {
-	Deck.Init()
+	Dealer.Init()
 }
