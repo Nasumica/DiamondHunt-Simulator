@@ -41,8 +41,8 @@ type Pack = []int
 
 // My favourite deck of cards.
 type Piatnik struct {
-	Cards    Pack
 	Croupier LCPRNG
+	Cards    Pack
 	Rest     int
 }
 
@@ -73,14 +73,14 @@ func (deck *Piatnik) Draw() (card Card) {
 	return
 }
 
-type Hold = []Card
+type Cards = []Card
 
 // Deal cards from deck (Fisher-Yates).
-func (deck *Piatnik) Deal(cards int) (hold Hold) {
+func (deck *Piatnik) Deal(cards int) (deal Cards) {
 	if cards > 0 {
-		hold = make(Hold, cards)
-		for i := range hold {
-			hold[i] = deck.Draw()
+		deal = make(Cards, cards)
+		for i := range deal {
+			deal[i] = deck.Draw()
 		}
 	}
 	return
