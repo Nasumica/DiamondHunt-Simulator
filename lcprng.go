@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+type (
+	array = []int
+	grid  = []array
+)
+
 // # Linear congruential pseudo-random numbers generator
 type LCPRNG struct {
 	seed uint64     // generator seed
@@ -139,16 +144,16 @@ func (rnd *LCPRNG) Choose(n, k int) bool {
 }
 
 // Knuth shuffle (Fisher-Yates).
-func (rnd *LCPRNG) Shuffle(a *[]int) {
+func (rnd *LCPRNG) Shuffle(a *array) {
 	for j, i := 0, len(*a); i > 1; (*a)[i], (*a)[j] = (*a)[j], (*a)[i] {
 		j, i = rnd.Choice(i), i-1
 	}
 }
 
 // Array of n integers in range [m, m + n) in random order.
-func (rnd *LCPRNG) Fill(m, n int) (a []int) {
+func (rnd *LCPRNG) Fill(m, n int) (a array) {
 	if n > 0 {
-		a = make([]int, n)
+		a = make(array, n)
 		for i := range a {
 			j := rnd.Int(0, i)
 			a[i], a[j] = a[j], m+i
@@ -158,17 +163,12 @@ func (rnd *LCPRNG) Fill(m, n int) (a []int) {
 }
 
 // Random permutation.
-func (rnd *LCPRNG) Permutation(n int) []int {
+func (rnd *LCPRNG) Permutation(n int) array {
 	return rnd.Fill(0, n)
 }
 
-// Random standard deck of cards.
-func (rnd *LCPRNG) Deck() []int {
-	return rnd.Fill(1, 52)
-}
-
 // Random combination k of n elements (quickpick).
-func (rnd *LCPRNG) Combination(n, k int) (c []int) {
+func (rnd *LCPRNG) Combination(n, k int) (c array) {
 	for i := 0; n > 0 && k > 0; i, n = i+1, n-1 {
 		if rnd.Choose(n, k) {
 			c = append(c, i)
@@ -179,7 +179,7 @@ func (rnd *LCPRNG) Combination(n, k int) (c []int) {
 }
 
 // Random sample of k elements.
-func (rnd *LCPRNG) Sample(k int, a *[]int) []int {
+func (rnd *LCPRNG) Sample(k int, a *array) array {
 	s := rnd.Combination(len(*a), k)
 	for i, j := range s {
 		s[i] = (*a)[j]
@@ -212,12 +212,12 @@ func (rnd *LCPRNG) HyperGeometric(draw, succ, size int) (hits int) {
 }
 
 // Random array index for non-empty array else -1.
-func (rnd *LCPRNG) Index(a *[]int) int {
+func (rnd *LCPRNG) Index(a *array) int {
 	return rnd.Choice(len(*a))
 }
 
 // Random item of array.
-func (rnd *LCPRNG) Item(a *[]int) int {
+func (rnd *LCPRNG) Item(a *array) int {
 	if i := rnd.Index(a); i < 0 {
 		return i
 	} else {
@@ -239,7 +239,7 @@ func (rnd *LCPRNG) Value(values *[]float64) float64 {
 //
 // The sequence must be non-negative, non-decreasing.
 // The last element of the sequence must be greater than 0.
-func (rnd *LCPRNG) Loaded(c *[]int) int {
+func (rnd *LCPRNG) Loaded(c *array) int {
 	r := len(*c) - 1
 	if r > 0 { // data present and not single
 		n := rnd.Choice((*c)[r]) // last c is "probabilityDown"
@@ -259,9 +259,9 @@ func (rnd *LCPRNG) Loaded(c *[]int) int {
 //
 //	ProbabilityUp[i] = w[i]
 //	ProbabolityDown  = ∑ w
-func (rnd *LCPRNG) Weighted(w *[]int) int {
+func (rnd *LCPRNG) Weighted(w *array) int {
 	t := 0       // total mass (probabilityDown)
-	c := []int{} // cumulative mass table
+	c := array{} // cumulative mass table
 	for _, m := range *w {
 		if m < 0 {
 			return -1 // no negative mass
@@ -848,8 +848,8 @@ func (rnd *LCPRNG) Triangular(a, b, mode float64) (t float64) {
 	return
 }
 
-// Sort integers with random pivot.
-func (rnd *LCPRNG) Sort(x *[]int) {
+// Sort array with random pivot.
+func (rnd *LCPRNG) Sort(x *array) {
 	const treshold = 16 // algorithm selection treshold
 
 	type part struct {
@@ -908,7 +908,7 @@ func (rnd *LCPRNG) Sort(x *[]int) {
 // Weighted-uniform random variation k of n elements
 // where weights = tuning, n = len(tuning) and k = podium,
 // calculated by race simulation standing list.
-func (rnd *LCPRNG) Podium(podium int, tuning *[]int) (stand []int) { // not optimised, tested
+func (rnd *LCPRNG) Podium(podium int, tuning *array) (stand array) { // not optimised, tested
 	cars := len(*tuning) // number of cars
 
 	// censor podium
@@ -918,7 +918,7 @@ func (rnd *LCPRNG) Podium(podium int, tuning *[]int) (stand []int) { // not opti
 		podium = cars
 	}
 
-	stand = make([]int, podium) // standing list
+	stand = make(array, podium) // standing list
 	stop := make([]bool, cars)  // is car stop
 	total := 0                  // total distance remaining
 	place := 0                  // battle for place
@@ -1010,7 +1010,7 @@ func (rnd *LCPRNG) Podium(podium int, tuning *[]int) (stand []int) { // not opti
 }
 
 // Weighted random permutation.
-func (rnd *LCPRNG) Race(tuning *[]int) []int {
+func (rnd *LCPRNG) Race(tuning *array) array {
 	return rnd.Podium(len(*tuning), tuning)
 }
 
@@ -1033,7 +1033,7 @@ func (rnd *LCPRNG) Forest(n int) (f string) {
 }
 
 // Cut deck of cards.
-func (rnd *LCPRNG) CutDeck(deck *[]int) (l, r []int) {
+func (rnd *LCPRNG) CutDeck(deck *array) (l, r array) {
 	c := rnd.Binomial(len(*deck), 0.5)
 	l, r = append(l, (*deck)[:c]...), append(r, (*deck)[c:]...)
 	return
@@ -1042,10 +1042,10 @@ func (rnd *LCPRNG) CutDeck(deck *[]int) (l, r []int) {
 // Interleave cards from left and right hand.
 //
 // Gilbert-Shannon-Reeds model.
-func (rnd *LCPRNG) DoveTail(l, r *[]int) (d []int) {
+func (rnd *LCPRNG) DoveTail(l, r *array) (d array) {
 	i, j := len(*l), len(*r)
 	n := i + j
-	d = make([]int, n)
+	d = make(array, n)
 	for n > 0 {
 		if rnd.Choose(n, i) {
 			n--
@@ -1061,7 +1061,7 @@ func (rnd *LCPRNG) DoveTail(l, r *[]int) (d []int) {
 }
 
 // Riffle shuffle deck of cards.
-func (rnd *LCPRNG) RiffleShuffle(deck *[]int) {
+func (rnd *LCPRNG) RiffleShuffle(deck *array) {
 	if n := len(*deck); n > 1 {
 		// by Bayer & Diaconis (n = 8 for standard deck)
 		for n = int(math.Log2(float64(n)) * 1.5); n > 0; n-- {
@@ -1080,9 +1080,9 @@ func (rnd *LCPRNG) RiffleShuffle(deck *[]int) {
 //
 // Metoda određuje "koliko dinara će sakupiti svako dete",
 // kada kum na "Kume, izgoreti kesa!" baci s dinara, a ispred crkve se nalazi n dece.
-func (rnd *LCPRNG) Scatter(s, n int) (d []int) {
+func (rnd *LCPRNG) Scatter(s, n int) (d array) {
 	if n > 0 {
-		d = make([]int, n)
+		d = make(array, n)
 		if s != 0 {
 			const l = 2 * 53 * math.Ln2
 			if n > 1 && math.Abs(float64(s)) < float64(n-1)*l { // Bernoulli method
@@ -1153,7 +1153,7 @@ func (rnd *LCPRNG) Edge(rtp float64) float64 {
 // Returns random dice roll (111-666), virtue (1-56) and frequency (1, 3, 6).
 //
 // Ludus Clericalis, TAOCP 4b, pp 493-494.
-func (rnd *LCPRNG) SicBo() (dice []int, virtue, freq int) {
+func (rnd *LCPRNG) SicBo() (dice array, virtue, freq int) {
 	d := dice
 	for roll := rnd.Choice(216); len(d) < 3; roll /= 6 {
 		d = append(d, roll%6+1)
@@ -1173,7 +1173,7 @@ func (rnd *LCPRNG) SicBo() (dice []int, virtue, freq int) {
 }
 
 // Slot reels stop positions and grid.
-func (rnd *LCPRNG) Slot(reels *[][]int, height ...int) (stop []int, grid [][]int) {
+func (rnd *LCPRNG) Slot(reels *grid, height ...int) (stop array, grid grid) {
 	l := len(height)
 	for i, r := range *reels {
 		s := rnd.Index(&r)
@@ -1189,6 +1189,36 @@ func (rnd *LCPRNG) Slot(reels *[][]int, height ...int) (stop []int, grid [][]int
 		grid = append(grid, r)
 	}
 	return
+}
+
+// Balls blower.
+func (rnd *LCPRNG) Blower(balls int) array {
+	return rnd.Fill(1, balls)
+}
+
+// Tombola blower.
+func (rnd *LCPRNG) Tombola() array {
+	return rnd.Blower(90)
+}
+
+// Bingo blower.
+func (rnd *LCPRNG) Bingo() array {
+	return rnd.Blower(75)
+}
+
+// Keno blower.
+func (rnd *LCPRNG) Keno() array {
+	return rnd.Blower(80)
+}
+
+// Lucky 6 blower.
+func (rnd *LCPRNG) Lucky6() array {
+	return rnd.Blower(49)
+}
+
+// Standard deck of 52 cards.
+func (rnd *LCPRNG) Deck() array {
+	return rnd.Blower(52)
 }
 
 // 2-adic multiplicative inverse for odd o else 0.

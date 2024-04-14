@@ -15,27 +15,6 @@ type List = []string
 var Kinds = List{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
 var Suits = List{"♠", "♦", "♥", "♣"} // preferans order
 
-type Pack = []int
-
-// My favourite deck of cards.
-type Piatnik struct {
-	Cards    Pack
-	Croupier LCPRNG
-	Rest     int
-}
-
-// Initialize deck of cards.
-func (deck *Piatnik) Init() {
-	deck.Croupier.Randomize()
-	deck.Cards = deck.Croupier.Deck()
-	deck.Reset()
-}
-
-// Ready for new deal.
-func (deck *Piatnik) Reset() {
-	deck.Rest = len(deck.Cards)
-}
-
 type Card struct {
 	Card  int
 	Kind  int
@@ -56,6 +35,27 @@ func (card *Card) Reveal() {
 	} else {
 		card.Face, card.Kind, card.Suit = "", 0, 0
 	}
+}
+
+type Pack = []int
+
+// My favourite deck of cards.
+type Piatnik struct {
+	Cards    Pack
+	Croupier LCPRNG
+	Rest     int
+}
+
+// Initialize deck of cards.
+func (deck *Piatnik) Init() {
+	deck.Croupier.Randomize()
+	deck.Cards = deck.Croupier.Deck()
+	deck.Reset()
+}
+
+// Ready for new deal.
+func (deck *Piatnik) Reset() {
+	deck.Rest = len(deck.Cards)
 }
 
 // Draw single card from deck.
