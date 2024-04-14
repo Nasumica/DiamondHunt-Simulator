@@ -1191,34 +1191,34 @@ func (rnd *LCPRNG) Slot(reels *grid, height ...int) (stop array, grid grid) {
 	return
 }
 
-// Balls blower.
-func (rnd *LCPRNG) Blower(balls int) array {
+// Balls mixer.
+func (rnd *LCPRNG) Mixer(balls int) array {
 	return rnd.Fill(1, balls)
 }
 
-// Tombola blower.
+// Tombola mixer.
 func (rnd *LCPRNG) Tombola() array {
-	return rnd.Blower(90)
+	return rnd.Mixer(90)
 }
 
-// Bingo blower.
+// Bingo mixer.
 func (rnd *LCPRNG) Bingo() array {
-	return rnd.Blower(75)
+	return rnd.Mixer(75)
 }
 
-// Keno blower.
+// Keno mixer.
 func (rnd *LCPRNG) Keno() array {
-	return rnd.Blower(80)
+	return rnd.Mixer(80)
 }
 
-// Lucky 6 blower.
+// Lucky 6 mixer.
 func (rnd *LCPRNG) Lucky6() array {
-	return rnd.Blower(49)
+	return rnd.Mixer(49)
 }
 
 // Standard deck of 52 cards.
 func (rnd *LCPRNG) Deck() array {
-	return rnd.Blower(52)
+	return rnd.Mixer(52)
 }
 
 // 2-adic multiplicative inverse for odd o else 0.
@@ -1341,11 +1341,11 @@ func Ludus(sides int, dice ...int) (total, index int, prob float64) {
 	return
 }
 
-// # Cheap rng for non-rgs stuff
+// # Whole Sort Of General Mish-Mash (H₂G₂)
 //
-// Whole Sort Of General Mish-Mash (H2G2).
-var RND LCPRNG
+// Cheap rng for non-rgs stuff.
+var WSOGMM LCPRNG
 
 func init() {
-	RND.Randomize()
+	WSOGMM.Randomize()
 }
