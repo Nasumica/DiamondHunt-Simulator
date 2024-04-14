@@ -1,4 +1,4 @@
-package main
+package rng
 
 import (
 	"fmt"
@@ -92,13 +92,4 @@ func SpeedTest(n int) {
 	elapsed := time.Since(start).Seconds()
 	speed := float64(n) / elapsed
 	fmt.Printf("elapsed = %.3f\",  speed = %.0f deals / s\n", elapsed, speed)
-}
-
-// Dealer of cards in use.
-var Dealer Deck
-
-// Ready to use.
-func init() {
-	Dealer.Init()
-	SpeedTest(million)
 }

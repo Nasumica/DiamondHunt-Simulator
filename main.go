@@ -1,5 +1,10 @@
 package main
 
+import (
+	"DHSimulator/rng"
+	"fmt"
+)
+
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 
 const (
@@ -16,5 +21,12 @@ const (
 	usa_quadrillion = 1000 * usa_trillion
 )
 
+var Deck rng.Deck
+
+func init() {
+	Deck.Init()
+}
+
 func main() {
+	fmt.Println(Deck.Cards)
 }
