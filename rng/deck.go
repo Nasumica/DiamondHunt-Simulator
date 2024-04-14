@@ -7,10 +7,8 @@ import (
 
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 
-type List = []string
-
-var Kinds = List{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
-var Suits = List{"♠", "♦", "♥", "♣"} // preferans order
+var Kinds = []string{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
+var Suits = []string{"♠", "♦", "♥", "♣"} // preferans order
 
 type Card struct {
 	Face  string
@@ -33,12 +31,10 @@ func (card *Card) Reveal() {
 	}
 }
 
-type Pack = []int
-
 // Deck of cards.
 type Deck struct {
 	Croupier LCPRNG
-	Cards    Pack
+	Cards    []int
 	Rest     int
 }
 
@@ -68,12 +64,10 @@ func (deck *Deck) Draw() (card Card) {
 	return
 }
 
-type Cards = []Card
-
 // Deal cards from deck (Fisher-Yates).
-func (deck *Deck) Deal(cards int) (deal Cards) {
+func (deck *Deck) Deal(cards int) (deal []Card) {
 	if cards > 0 {
-		deal = make(Cards, cards)
+		deal = make([]Card, cards)
 		for i := range deal {
 			deal[i] = deck.Draw()
 		}
