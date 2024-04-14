@@ -2,14 +2,6 @@ package main
 
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 
-const ( // preferans order
-	NoSuit      = iota
-	SpadeSuit   // ♠, pik,  лист
-	DiamondSuit // ♦, karo, баклава
-	HeartSuit   // ♥, srce, срце
-	ClubSuit    // ♣, tref, детелина
-)
-
 type List = []string
 
 var Kinds = List{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
@@ -25,8 +17,7 @@ type Card struct {
 
 // Reveal card.
 func (card *Card) Reveal() {
-	c := card.Card
-	if 1 <= c && c <= 52 {
+	if c := card.Card; 1 <= c && c <= 52 {
 		c--
 		k, s := c/4, c%4
 		card.Face = Kinds[k] + Suits[s]
@@ -53,7 +44,7 @@ func (deck *Piatnik) Init() {
 	deck.Reset()
 }
 
-// Ready for new deal.
+// New deal.
 func (deck *Piatnik) Reset() {
 	deck.Rest = len(deck.Cards)
 }
@@ -89,6 +80,7 @@ func (deck *Piatnik) Deal(cards int) (deal Cards) {
 // Deck of cards in use.
 var Deck Piatnik
 
+// Ready to use.
 func init() {
 	Deck.Init()
 }
