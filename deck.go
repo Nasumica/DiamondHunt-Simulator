@@ -29,10 +29,7 @@ func (deck *Piatnik) Init() {
 	deck.Kinds = List{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
 	deck.Suits = List{"♠", "♦", "♥", "♣"} // preferans order
 	deck.Croupier.Randomize()
-	deck.Cards = make(Pack, 52)
-	for c := range deck.Cards {
-		deck.Cards[c] = c + 1
-	}
+	deck.Cards = deck.Croupier.Deck()
 	deck.Reset()
 }
 

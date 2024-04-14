@@ -23,7 +23,7 @@ func (rnd *LCPRNG) Seed() uint64 {
 	return rnd.seed
 }
 
-// Inititalize generator with seeds or system clock.
+// Inititalize generator with seeds or system state.
 func (rnd *LCPRNG) Randomize(seeds ...uint64) (seed uint64) {
 	xorshift := func(x uint64) uint64 { // by George Marsaglia
 		x ^= x << 13
@@ -160,6 +160,11 @@ func (rnd *LCPRNG) Fill(m, n int) (a []int) {
 // Random permutation.
 func (rnd *LCPRNG) Permutation(n int) []int {
 	return rnd.Fill(0, n)
+}
+
+// Random standard deck of cards.
+func (rnd *LCPRNG) Deck() []int {
+	return rnd.Fill(1, 52)
 }
 
 // Random combination k of n elements (quickpick).
