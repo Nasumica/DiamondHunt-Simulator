@@ -53,8 +53,7 @@ func (deck *Piatnik) Reset() {
 func (deck *Piatnik) Draw() (card Card) {
 	if deck.Rest > 0 {
 		n := deck.Croupier.Choice(deck.Rest)
-		card.Index = n
-		card.Card = deck.Cards[n]
+		card.Index, card.Card = n, deck.Cards[n]
 		card.Reveal()
 		deck.Rest--
 		deck.Cards[deck.Rest], deck.Cards[n] = deck.Cards[n], deck.Cards[deck.Rest]

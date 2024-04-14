@@ -103,6 +103,9 @@ func (rnd *LCPRNG) Prev() uint64 {
 }
 
 // Next random value from generator limited to range [0, n].
+//
+//	μ = n / 2
+//	σ² = n · (n + 2) / 12
 func (rnd *LCPRNG) Limited(n uint64) uint64 {
 	if n != 0 {
 		if n++; n == 0 { // n = 2⁶⁴
@@ -493,7 +496,7 @@ func (rnd *LCPRNG) Logistic(μ, s float64) (l float64) {
 
 // Poisson distribution random variable.
 //
-//	p(n) = exp(-ƛ) · ƛⁿ / n!
+//	p(n) = exp(-ƛ) ✶ ƛⁿ / n!
 func (rnd *LCPRNG) Poisson(ƛ float64) (n int) {
 	const limit = 256
 	if ƛ > 0 {
@@ -1223,7 +1226,7 @@ func (rnd *LCPRNG) Deck() array {
 
 // 2-adic multiplicative inverse for odd o else 0.
 //
-//	o · r = 1 (mod 2⁶⁴)
+//	o ✶ r = 1 (mod 2⁶⁴)
 //
 // practically
 //
