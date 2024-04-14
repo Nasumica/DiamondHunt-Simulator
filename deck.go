@@ -1,5 +1,10 @@
 package main
 
+import (
+	"fmt"
+	"time"
+)
+
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 
 type List = []string
@@ -8,10 +13,10 @@ var Kinds = List{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"
 var Suits = List{"♠", "♦", "♥", "♣"} // preferans order
 
 type Card struct {
-	Card  int
+	Face  string
 	Kind  int
 	Suit  int
-	Face  string
+	Card  int
 	Index int
 }
 
@@ -82,4 +87,13 @@ var Dealer Deck
 // Ready to use.
 func init() {
 	Dealer.Init()
+	n := milliard
+	start := time.Now()
+	for i := 0; i < n; i++ {
+		Dealer.Reset()
+		Dealer.Deal(8)
+	}
+	elapsed := time.Since(start).Seconds()
+	speed := float64(n) / elapsed
+	fmt.Printf("elapsed = %.3f\",  speed = %.0f deals / s\n", elapsed, speed)
 }
