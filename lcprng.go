@@ -103,7 +103,7 @@ func (rnd *LCPRNG) Limited(n uint64) uint64 {
 		if n++; n == 0 { // n = 2⁶⁴
 			n = rnd.Next()
 		} else { // acceptance-rejection: p(reject) = 2⁶⁴ % n / 2⁶⁴
-			for f, u := -n/n+1, n; n >= u; { // f = 2⁶⁴ / n
+			for f, m := -n/n+1, n; n >= m; { // f = 2⁶⁴ / n
 				n = rnd.Next() / f
 			}
 		}

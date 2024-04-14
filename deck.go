@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 
 const DiamondSuit int = 3 // baklava
@@ -28,11 +26,11 @@ func (deck *DeckOfCards) Init() {
 	for c := range deck.Cards {
 		deck.Cards[c] = c + 1
 	}
-	deck.NewDeal()
+	deck.Reset()
 }
 
 // Ready to new deal.
-func (deck *DeckOfCards) NewDeal() {
+func (deck *DeckOfCards) Reset() {
 	deck.Rest = len(deck.Cards)
 }
 
@@ -47,16 +45,31 @@ type Card struct {
 // Draw single card from deck.
 func (deck *DeckOfCards) Draw() (card Card) {
 	if deck.Rest > 0 {
-		n := deck.Croupier.Choice(deck.Rest)
-		card.Index = n
-		card.Value = deck.Cards[n]
+		c := deck.Croupier.Choice(deck.Rest)
+		card.Index = c
+		card.Value = deck.Cards[c]
 		deck.Rest--
-		deck.Cards[deck.Rest], deck.Cards[n] = deck.Cards[n], deck.Cards[deck.Rest]
-		n = card.Value - 1
-		k, s := n/4, n%4
+		deck.Cards[deck.Rest], deck.Cards[c] = deck.Cards[c], deck.Cards[deck.Rest]
+		c = card.Value - 1
+		k, s := c/4, c%4
 		card.Face = deck.Kinds[k] + deck.Suits[s]
 		card.Kind = k + 2
 		card.Suit = s + 1
+	} else {
+		card.Value = -1 // error
+	}
+	return
+}
+
+type Hold = []Card
+
+// Deal cards from deck.
+func (deck *DeckOfCards) Deal(cards int) (hold Hold) {
+	if cards > 0 {
+		hold = make(Hold, cards)
+		for i := range hold {
+			hold[i] = deck.Draw()
+		}
 	}
 	return
 }
@@ -66,8 +79,4 @@ var Deck DeckOfCards
 
 func init() {
 	Deck.Init()
-	fmt.Println(Deck.Draw())
-	fmt.Println(Deck.Draw())
-	fmt.Println(Deck.Draw())
-	fmt.Println(Deck.Draw())
 }
