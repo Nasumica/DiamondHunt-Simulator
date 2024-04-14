@@ -3,46 +3,42 @@ package main
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 
 import (
-	"crypto/rand"
 	"math"
-	"math/big"
 	"sync"
 	"time"
 )
 
 type (
-	array  = []int
-	grid   = []array
+	octa   = uint64
+	list   = []int
+	grid   = []list
 	number = float64
 	vector = []number
 )
 
 // # Linear congruential pseudo-random numbers generator
 type LCPRNG struct {
-	seed uint64     // generator seed
+	seed octa       // generator seed
 	dog  sync.Mutex // watchdog Šarko
 }
 
 // Current seed.
-func (rnd *LCPRNG) Seed() uint64 {
+func (rnd *LCPRNG) Seed() octa {
 	rnd.dog.Lock()
 	defer rnd.dog.Unlock()
 	return rnd.seed
 }
 
 // Inititalize generator with seeds or system state.
-func (rnd *LCPRNG) Randomize(seeds ...uint64) (seed uint64) {
-	xorshift := func(x uint64) uint64 { // by George Marsaglia
+func (rnd *LCPRNG) Randomize(seeds ...octa) (seed octa) {
+	xorshift := func(x octa) octa { // by George Marsaglia
 		x ^= x << 13
 		x ^= x >> 7
 		x ^= x << 17
 		return x
 	}
 	if len(seeds) == 0 {
-		seed = xorshift(uint64(time.Now().UnixNano()) / 100)
-		if g, e := rand.Int(rand.Reader, new(big.Int).SetBit(new(big.Int), 64, 1)); e == nil {
-			seed ^= g.Uint64() // seed from computer crypto entropy generator
-		}
+		seed = xorshift(octa(time.Now().UnixNano()))
 	} else {
 		for _, s := range seeds {
 			seed = xorshift(seed) ^ s
@@ -64,12 +60,12 @@ where constants
 	c = 0x14057b7ef767814f
 given by Knuth in MMIX RISC processor.
 */
-func (rnd *LCPRNG) Next() uint64 {
+func (rnd *LCPRNG) Next() octa {
 	rnd.dog.Lock()         // ... da pustim kuče dok ja radim,
 	defer rnd.dog.Unlock() // a da ga vežem kad rade drugi. :)
 	const (
-		a uint64 = 0x5851f42d4c957f2d // multiplier
-		c uint64 = 0x14057b7ef767814f // incrementer
+		a octa = 0x5851f42d4c957f2d // multiplier
+		c octa = 0x14057b7ef767814f // incrementer
 	)
 	rnd.seed *= a // constants
 	rnd.seed += c // by Knuth
@@ -92,12 +88,12 @@ For given constants a and c
 	b = 0xc097ef87329e28a5
 	d = 0x9995b5b621535015
 */
-func (rnd *LCPRNG) Prev() uint64 {
+func (rnd *LCPRNG) Prev() octa {
 	rnd.dog.Lock()
 	defer rnd.dog.Unlock()
 	const (
-		b uint64 = 0xc097ef87329e28a5 // multiplier
-		d uint64 = 0x9995b5b621535015 // incrementer
+		b octa = 0xc097ef87329e28a5 // multiplier
+		d octa = 0x9995b5b621535015 // incrementer
 	)
 	rnd.seed *= b
 	rnd.seed += d
@@ -108,7 +104,7 @@ func (rnd *LCPRNG) Prev() uint64 {
 //
 //	μ = n / 2
 //	σ² = n · (n + 2) / 12
-func (rnd *LCPRNG) Limited(n uint64) uint64 {
+func (rnd *LCPRNG) Limited(n octa) octa {
 	if n != 0 {
 		if n++; n == 0 { // n = 2⁶⁴
 			n = rnd.Next()
@@ -126,7 +122,7 @@ func (rnd *LCPRNG) Int(m, n int) int {
 	if m > n {
 		m, n = n, m
 	}
-	return m + int(rnd.Limited(uint64(n-m)))
+	return m + int(rnd.Limited(octa(n-m)))
 }
 
 // Random integer in range [0, n) for positive n, -1 for n = 0, else in range [n, -1].
@@ -135,11 +131,11 @@ func (rnd *LCPRNG) Int(m, n int) int {
 //	σ² = (n² - 1) / 12
 func (rnd *LCPRNG) Choice(n int) int {
 	if n > 1 {
-		return int(rnd.Limited(uint64(n - 1)))
+		return int(rnd.Limited(octa(n - 1)))
 	} else if n >= 0 {
 		return n - 1
 	} else {
-		return -int(rnd.Limited(uint64(-n-1))) - 1
+		return -int(rnd.Limited(octa(-n-1))) - 1
 	}
 }
 
@@ -149,16 +145,16 @@ func (rnd *LCPRNG) Choose(n, k int) bool {
 }
 
 // Knuth shuffle (Fisher-Yates).
-func (rnd *LCPRNG) Shuffle(a *array) {
+func (rnd *LCPRNG) Shuffle(a *list) {
 	for j, i := 0, len(*a); i > 1; (*a)[i], (*a)[j] = (*a)[j], (*a)[i] {
 		j, i = rnd.Choice(i), i-1
 	}
 }
 
-// Array of n integers in range [m, m + n) in random order.
-func (rnd *LCPRNG) Fill(m, n int) (a array) {
+// List of n integers in range [m, m + n) in random order.
+func (rnd *LCPRNG) Fill(m, n int) (a list) {
 	if n > 0 {
-		a = make(array, n)
+		a = make(list, n)
 		for i := range a {
 			j := rnd.Int(0, i)
 			a[i], a[j] = a[j], m+i
@@ -168,12 +164,12 @@ func (rnd *LCPRNG) Fill(m, n int) (a array) {
 }
 
 // Random permutation.
-func (rnd *LCPRNG) Permutation(n int) array {
+func (rnd *LCPRNG) Permutation(n int) list {
 	return rnd.Fill(0, n)
 }
 
 // Random combination k of n elements (quickpick).
-func (rnd *LCPRNG) Combination(n, k int) (c array) {
+func (rnd *LCPRNG) Combination(n, k int) (c list) {
 	for i := 0; n > 0 && k > 0; i, n = i+1, n-1 {
 		if rnd.Choose(n, k) {
 			c = append(c, i)
@@ -184,7 +180,7 @@ func (rnd *LCPRNG) Combination(n, k int) (c array) {
 }
 
 // Random sample of k elements.
-func (rnd *LCPRNG) Sample(k int, a *array) array {
+func (rnd *LCPRNG) Sample(k int, a *list) list {
 	s := rnd.Combination(len(*a), k)
 	for i, j := range s {
 		s[i] = (*a)[j]
@@ -216,13 +212,13 @@ func (rnd *LCPRNG) HyperGeometric(draw, succ, size int) (hits int) {
 	return
 }
 
-// Random array index for non-empty array else -1.
-func (rnd *LCPRNG) Index(a *array) int {
+// Random list index for non-empty list else -1.
+func (rnd *LCPRNG) Index(a *list) int {
 	return rnd.Choice(len(*a))
 }
 
-// Random item of array.
-func (rnd *LCPRNG) Item(a *array) int {
+// Random item of list.
+func (rnd *LCPRNG) Item(a *list) int {
 	if i := rnd.Index(a); i < 0 {
 		return i
 	} else {
@@ -244,7 +240,7 @@ func (rnd *LCPRNG) Value(values *vector) number {
 //
 // The sequence must be non-negative, non-decreasing.
 // The last element of the sequence must be greater than 0.
-func (rnd *LCPRNG) Loaded(c *array) int {
+func (rnd *LCPRNG) Loaded(c *list) int {
 	r := len(*c) - 1
 	if r > 0 { // data present and not single
 		n := rnd.Choice((*c)[r]) // last c is "probabilityDown"
@@ -264,9 +260,9 @@ func (rnd *LCPRNG) Loaded(c *array) int {
 //
 //	ProbabilityUp[i] = w[i]
 //	ProbabolityDown  = ∑ w
-func (rnd *LCPRNG) Weighted(w *array) int {
-	t := 0       // total mass (probabilityDown)
-	c := array{} // cumulative mass table
+func (rnd *LCPRNG) Weighted(w *list) int {
+	t := 0      // total mass (probabilityDown)
+	c := list{} // cumulative mass table
 	for _, m := range *w {
 		if m < 0 {
 			return -1 // no negative mass
@@ -283,7 +279,7 @@ func (rnd *LCPRNG) Weighted(w *array) int {
 
 // Uniform random number in range (0, 1).
 func (rnd *LCPRNG) Random() number {
-	var n uint64
+	var n octa
 	for n == 0 {
 		n = rnd.Next() >> 11 // trim to 53 bits mantissa
 	}
@@ -853,8 +849,8 @@ func (rnd *LCPRNG) Triangular(a, b, mode number) (t number) {
 	return
 }
 
-// Sort array with random pivot.
-func (rnd *LCPRNG) Sort(x *array) {
+// Sort list with random pivot.
+func (rnd *LCPRNG) Sort(x *list) {
 	const treshold = 16 // algorithm selection treshold
 
 	type part struct {
@@ -913,7 +909,7 @@ func (rnd *LCPRNG) Sort(x *array) {
 // Weighted-uniform random variation k of n elements
 // where weights = tuning, n = len(tuning) and k = podium,
 // calculated by race simulation standing list.
-func (rnd *LCPRNG) Podium(podium int, tuning *array) (stand array) { // not optimised, tested
+func (rnd *LCPRNG) Podium(podium int, tuning *list) (stand list) { // not optimised, tested
 	cars := len(*tuning) // number of cars
 
 	// censor podium
@@ -923,15 +919,15 @@ func (rnd *LCPRNG) Podium(podium int, tuning *array) (stand array) { // not opti
 		podium = cars
 	}
 
-	stand = make(array, podium) // standing list
-	stop := make([]bool, cars)  // is car stop
-	total := 0                  // total distance remaining
-	place := 0                  // battle for place
-	count := 0                  // number of cars who completed the race
-	finish := 0                 // finish line
-	car := 0                    // current car
-	speed := 0                  // and speed
-	race := count < podium      // Gentlemen, start your engines!
+	stand = make(list, podium) // standing list
+	stop := make([]bool, cars) // is car stop
+	total := 0                 // total distance remaining
+	place := 0                 // battle for place
+	count := 0                 // number of cars who completed the race
+	finish := 0                // finish line
+	car := 0                   // current car
+	speed := 0                 // and speed
+	race := count < podium     // Gentlemen, start your engines!
 
 	if race { // convoy head (favorites)
 		for _, speed = range *tuning {
@@ -1015,7 +1011,7 @@ func (rnd *LCPRNG) Podium(podium int, tuning *array) (stand array) { // not opti
 }
 
 // Weighted random permutation.
-func (rnd *LCPRNG) Race(tuning *array) array {
+func (rnd *LCPRNG) Race(tuning *list) list {
 	return rnd.Podium(len(*tuning), tuning)
 }
 
@@ -1038,7 +1034,7 @@ func (rnd *LCPRNG) Forest(n int) (f string) {
 }
 
 // Cut deck of cards.
-func (rnd *LCPRNG) CutDeck(deck *array) (l, r array) {
+func (rnd *LCPRNG) CutDeck(deck *list) (l, r list) {
 	c := rnd.Binomial(len(*deck), 0.5)
 	l, r = append(l, (*deck)[:c]...), append(r, (*deck)[c:]...)
 	return
@@ -1047,10 +1043,10 @@ func (rnd *LCPRNG) CutDeck(deck *array) (l, r array) {
 // Interleave cards from left and right hand.
 //
 // Gilbert-Shannon-Reeds model.
-func (rnd *LCPRNG) DoveTail(l, r *array) (d array) {
+func (rnd *LCPRNG) DoveTail(l, r *list) (d list) {
 	i, j := len(*l), len(*r)
 	n := i + j
-	d = make(array, n)
+	d = make(list, n)
 	for n > 0 {
 		if rnd.Choose(n, i) {
 			n--
@@ -1066,7 +1062,7 @@ func (rnd *LCPRNG) DoveTail(l, r *array) (d array) {
 }
 
 // Riffle shuffle deck of cards.
-func (rnd *LCPRNG) RiffleShuffle(deck *array) {
+func (rnd *LCPRNG) RiffleShuffle(deck *list) {
 	if n := len(*deck); n > 1 {
 		// by Bayer & Diaconis (n = 8 for standard deck)
 		for n = int(math.Log2(number(n)) * 1.5); n > 0; n-- {
@@ -1076,7 +1072,7 @@ func (rnd *LCPRNG) RiffleShuffle(deck *array) {
 	}
 }
 
-// Array of n random integers which sum is equal to s.
+// List of n random integers which sum is equal to s.
 //
 //	μ = s / n
 //	σ = sqrt(s ✶ (n - 1)) / n
@@ -1085,9 +1081,9 @@ func (rnd *LCPRNG) RiffleShuffle(deck *array) {
 //
 // Metoda određuje "koliko dinara će sakupiti svako dete",
 // kada kum na "Kume, izgoreti kesa!" baci s dinara, a ispred crkve se nalazi n dece.
-func (rnd *LCPRNG) Scatter(s, n int) (d array) {
+func (rnd *LCPRNG) Scatter(s, n int) (d list) {
 	if n > 0 {
-		d = make(array, n)
+		d = make(list, n)
 		if s != 0 {
 			const l = 2 * 53 * math.Ln2
 			if n > 1 && math.Abs(number(s)) < number(n-1)*l { // Bernoulli method
@@ -1158,7 +1154,7 @@ func (rnd *LCPRNG) Edge(rtp number) number {
 // Returns random dice roll (111-666), virtue (1-56) and frequency (1, 3, 6).
 //
 // Ludus Clericalis, TAOCP 4b, pp 493-494.
-func (rnd *LCPRNG) SicBo() (dice array, virtue, freq int) {
+func (rnd *LCPRNG) SicBo() (dice list, virtue, freq int) {
 	d := dice
 	for roll := rnd.Choice(216); len(d) < 3; roll /= 6 {
 		d = append(d, roll%6+1)
@@ -1178,7 +1174,7 @@ func (rnd *LCPRNG) SicBo() (dice array, virtue, freq int) {
 }
 
 // Slot reels stop positions and grid.
-func (rnd *LCPRNG) Slot(reels *grid, height ...int) (stop array, grid grid) {
+func (rnd *LCPRNG) Slot(reels *grid, height ...int) (stop list, grid grid) {
 	l := len(height)
 	for i, r := range *reels {
 		s := rnd.Index(&r)
@@ -1197,32 +1193,32 @@ func (rnd *LCPRNG) Slot(reels *grid, height ...int) (stop array, grid grid) {
 }
 
 // Balls mixer.
-func (rnd *LCPRNG) Mixer(balls int) array {
+func (rnd *LCPRNG) Mixer(balls int) list {
 	return rnd.Fill(1, balls)
 }
 
 // Tombola mixer.
-func (rnd *LCPRNG) Tombola() array {
+func (rnd *LCPRNG) Tombola() list {
 	return rnd.Mixer(90)
 }
 
 // Bingo mixer.
-func (rnd *LCPRNG) Bingo() array {
+func (rnd *LCPRNG) Bingo() list {
 	return rnd.Mixer(75)
 }
 
 // Keno mixer.
-func (rnd *LCPRNG) Keno() array {
+func (rnd *LCPRNG) Keno() list {
 	return rnd.Mixer(80)
 }
 
 // Lucky 6 mixer.
-func (rnd *LCPRNG) Lucky6() array {
+func (rnd *LCPRNG) Lucky6() list {
 	return rnd.Mixer(49)
 }
 
 // Standard deck of 52 cards.
-func (rnd *LCPRNG) Deck() array {
+func (rnd *LCPRNG) Deck() list {
 	return rnd.Mixer(52)
 }
 
@@ -1233,10 +1229,10 @@ func (rnd *LCPRNG) Deck() array {
 // practically
 //
 //	r = 1 / o
-func MulInv64(o uint64) (r uint64) {
+func MulInv64(o octa) (r octa) {
 	if o != 0 {
 		o /= -o & o // trim right zeroes
-		for m, b := uint64(0), uint64(1); b != 0; b <<= 1 {
+		for m, b := octa(0), octa(1); b != 0; b <<= 1 {
 			if m |= b; o*r&m != 1 {
 				r |= b
 			}
