@@ -1,7 +1,6 @@
 package main
 
 import (
-	"DHSimulator/rng"
 	"fmt"
 )
 
@@ -21,12 +20,14 @@ const (
 	usa_quadrillion = 1000 * usa_trillion
 )
 
-var Deck rng.Deck
+var Dealer Deck
 
 func init() {
-	Deck.Init()
+	Dealer.Init()
 }
 
 func main() {
-	fmt.Println(Deck.Cards)
+	h := Dealer.Deal(7)
+	fmt.Println(h)
+	fmt.Println(Dealer.Likelihood(h))
 }

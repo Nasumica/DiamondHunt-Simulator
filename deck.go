@@ -1,4 +1,4 @@
-package rng
+package main
 
 import (
 	"fmt"
@@ -73,6 +73,16 @@ func (deck *Deck) Deal(cards int) (deal []Card) {
 		}
 	}
 	return
+}
+
+func (deck *Deck) Likelihood(cards []Card) ([]int, int) {
+	var p BitPoker
+	p.Classic()
+	var h uint64
+	for _, c := range cards {
+		h |= 1 << (c.Card - 1)
+	}
+	return p.Likelihood(h)
 }
 
 func SpeedTest(n int) {

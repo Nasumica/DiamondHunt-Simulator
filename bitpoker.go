@@ -1,9 +1,8 @@
-package game
+package main
 
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 
 import (
-	"DHSimulator/rng"
 	"errors"
 	"fmt"
 	"time"
@@ -1015,6 +1014,43 @@ var WildCardComb = [6][10]int{
 	{0, 0, 0, 0, 0, 0, 0, 0, 32, 20},
 	{0, 0, 0, 0, 0, 0, 0, 0, 0, 1}}
 
+func (bp *BitPoker) Likelihood(hold spil) (list []int, sum int) {
+	bp.ensure() // ensure pack
+
+	hold &= bp.pack // remove non-standard cards (if any)
+
+	start := time.Now()
+
+	if l := bp.Length(hold); l <= 5 {
+		var wild sampler
+		if wild.Init(bp.Rest(hold), 5-l) {
+			list = make([]int, 10)
+			for !wild.Eof() {
+				list[bp.Code(hold|wild.Next())]++
+			}
+		}
+	} else {
+		var pile sampler
+		pile.Init(hold, 5)
+		list = make([]int, 10)
+		for !pile.Eof() {
+			list[bp.Code(pile.Next())]++
+		}
+	}
+	for _, l := range list {
+		sum += l
+	}
+
+	elapsed := time.Since(start).Seconds()
+	fmt.Println(elapsed)
+
+	return
+}
+
+func (pok *Poker) Likelihood(hold []int) ([]int, int) {
+	return pok.bp.Likelihood(pok.bp.Squeeze(hold...))
+}
+
 func CountCombs(w int) (card, wild [10]int) {
 	var poker BitPoker
 	poker.Classic()
@@ -1082,57 +1118,11 @@ func (bp *BitPoker) MinMax(hold spil, min int) (worst, best string) {
 	return
 }
 
-func (bp *BitPoker) Likelihood(hold spil) (list []int, sum int) {
-	bp.ensure() // ensure pack
-
-	hold &= bp.pack // remove non-standard cards (if any)
-
-	start := time.Now()
-	if l := bp.Length(hold); l < 0 {
-		list = WildCardComb[0][:]
-	} else if l < 5 {
-		var wild sampler
-		if wild.Init(bp.Rest(hold), 5-l) {
-			list = make([]int, 10)
-			for !wild.Eof() {
-				list[bp.Code(hold|wild.Next())]++
-			}
-		}
-	} else {
-		var pile sampler
-		pile.Init(hold, 5)
-		list = make([]int, 10)
-		for !pile.Eof() {
-			list[bp.Code(pile.Next())]++
-		}
-	}
-	for _, l := range list {
-		sum += l
-	}
-	elapsed := time.Since(start).Seconds()
-	fmt.Println(elapsed)
-
-	return
-}
-
-func (pok *Poker) Likelihood(hold []int) ([]int, int) {
-	return pok.bp.Likelihood(pok.bp.Squeeze(hold...))
-}
-
 func GCD(u, v uint64) uint64 {
 	for v != 0 {
 		u, v = v, u%v
 	}
 	return u
-}
-
-func MaxWinProb(deck, m, n int) (uint64, uint64) {
-	dn := uint64(deck)
-	for i := 1; i <= n; i++ {
-		dn *= uint64(deck)
-	}
-	g := GCD(dn, 20)
-	return 20 / g, dn / g
 }
 
 func HandProb(wheel bool, h ...int) {
@@ -1194,7 +1184,5 @@ func Trifoil() (list []int) {
 	for i := range tri {
 		list = append(list, i)
 	}
-	var r rng.LCPRNG
-	r.Sort(&list)
 	return
 }
