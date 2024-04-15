@@ -20,14 +20,8 @@ const (
 	usa_quadrillion = 1000 * usa_trillion
 )
 
-var Dealer Deck
-
-func init() {
-	Dealer.Init()
-}
-
 func main() {
 	h := Dealer.Deal(7)
 	fmt.Println(h)
-	fmt.Println(Dealer.Likelihood(h))
+	fmt.Println(Likelihood(h))
 }

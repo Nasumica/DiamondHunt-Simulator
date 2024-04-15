@@ -1184,5 +1184,6 @@ func Trifoil() (list []int) {
 	for i := range tri {
 		list = append(list, i)
 	}
+	WSOGMM.Sort(&list)
 	return
 }

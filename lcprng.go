@@ -11,11 +11,11 @@ import (
 )
 
 type ( // type aliases used in this module
-	octa  = uint64
-	list  = []int
-	grid  = []list
-	float = float64
-	array = []float
+	octa  = uint64  // unsigned octabyte
+	list  = []int   // integers array
+	grid  = []list  // integers matrix
+	float = float64 // number
+	array = []float // numbers array
 )
 
 // # Linear congruential pseudo-random numbers generator
@@ -23,6 +23,11 @@ type LCPRNG struct {
 	seed octa       // generator seed
 	dog  sync.Mutex // watchdog Šarko
 }
+
+// # Whole Sort Of General Mish-Mash (H₂G₂)
+//
+// Cheap rng for non-rgs stuff.
+var WSOGMM LCPRNG
 
 // Current seed.
 func (rnd *LCPRNG) Seed() octa {
@@ -1322,11 +1327,7 @@ func HypGeomDist(hits, draw, succ, size int) (prob float) {
 // Calculate combination index and probability.
 func Ludus(sides int, dice ...int) (total, index int, prob float) {
 	if sides >= 0 {
-		{
-			var r LCPRNG
-			r.Randomize()
-			r.Sort(&dice)
-		}
+		WSOGMM.Sort(&dice)
 		k := len(dice)
 		n := sides + k - 1
 		total = int(Binomial(n, k))
@@ -1346,11 +1347,6 @@ func Ludus(sides int, dice ...int) (total, index int, prob float) {
 	}
 	return
 }
-
-// # Whole Sort Of General Mish-Mash (H₂G₂)
-//
-// Cheap rng for non-rgs stuff.
-var WSOGMM LCPRNG
 
 func init() {
 	WSOGMM.Randomize()

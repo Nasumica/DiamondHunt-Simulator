@@ -75,7 +75,7 @@ func (deck *Deck) Deal(cards int) (deal []Card) {
 	return
 }
 
-func (deck *Deck) Likelihood(cards []Card) ([]int, int) {
+func Likelihood(cards []Card) ([]int, int) {
 	var p BitPoker
 	p.Classic()
 	var h uint64
@@ -96,4 +96,10 @@ func SpeedTest(n int) {
 	elapsed := time.Since(start).Seconds()
 	speed := float64(n) / elapsed
 	fmt.Printf("elapsed = %.3f\",  speed = %.0f deals / s\n", elapsed, speed)
+}
+
+var Dealer Deck
+
+func init() {
+	Dealer.Init()
 }
