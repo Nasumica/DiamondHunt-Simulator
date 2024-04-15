@@ -9,3 +9,13 @@ const ( // preferans order
 	HeartSuit   // ♥, srce, срце
 	ClubSuit    // ♣, tref, детелина
 )
+
+type Hand struct {
+	Hold []Card
+	Diam []Card
+}
+
+func (h *Hand) Deal() {
+	h.Hold = Dealer.NewDeal(4)
+	h.Diam = Dealer.Deal(4)
+}

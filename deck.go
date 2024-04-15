@@ -7,8 +7,8 @@ import (
 
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 
-var Kinds = []string{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
-var Suits = []string{"♠", "♦", "♥", "♣"} // preferans order
+var Kinds = [...]string{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
+var Suits = [...]string{"♠", "♦", "♥", "♣"} // preferans order
 
 type Card struct {
 	Face  string
@@ -29,6 +29,11 @@ func (card *Card) Reveal() {
 	} else {
 		card.Face, card.Kind, card.Suit = "", 0, 0
 	}
+}
+
+// Swap with other card.
+func (card *Card) Swap(other *Card) {
+	*card, *other = *other, *card
 }
 
 // Deck of cards.
@@ -75,6 +80,12 @@ func (deck *Deck) Deal(cards int) (deal []Card) {
 	return
 }
 
+// Deal cards from whole deck.
+func (deck *Deck) NewDeal(cards int) []Card {
+	deck.Reset()
+	return deck.Deal(cards)
+}
+
 func Likelihood(cards []Card) ([]int, int) {
 	var p BitPoker
 	p.Classic()
@@ -98,6 +109,7 @@ func SpeedTest(n int) {
 	fmt.Printf("elapsed = %.3f\",  speed = %.0f deals / s\n", elapsed, speed)
 }
 
+// Croupier with deck of cards.
 var Dealer Deck
 
 func init() {

@@ -1,9 +1,5 @@
 package main
 
-import (
-	"fmt"
-)
-
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 
 const (
@@ -21,7 +17,6 @@ const (
 )
 
 func main() {
-	h := Dealer.Deal(7)
-	fmt.Println(h)
-	fmt.Println(Likelihood(h))
+	var h Hand
+	h.Deal()
 }
