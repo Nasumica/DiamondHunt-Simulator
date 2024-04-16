@@ -42,12 +42,12 @@ func SpeedTest(n int) {
 	for h, o := range opens {
 		fmt.Println()
 		hp := float64(o) / float64(n)
-		fmt.Printf("%d      %9.5f%%              %9d\n", h, 100*hp, o)
+		fmt.Printf("%d      %9.5f%%              %10d\n", h, 100*hp, o)
 		for d, c := range chart[h] {
 			dp := float64(c) / float64(o)
 			tp := float64(c) / float64(n)
 			// fmt.Printf("%23s", "")
-			fmt.Printf("    %d  %9.5f%%  %9.5f%%  %9d", d, 100*tp, 100*dp, c)
+			fmt.Printf("    %d  %9.5f%%  %9.5f%%  %10d", d, 100*tp, 100*dp, c)
 			fmt.Println()
 		}
 	}
