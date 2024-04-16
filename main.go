@@ -92,5 +92,5 @@ func main() {
 	// 	fmt.Println(scr.Play())
 	// }
 	// Chart(35000000)
-	SpeedTest(1 * 1000000)
+	SpeedTest(35 * 1000000)
 }
