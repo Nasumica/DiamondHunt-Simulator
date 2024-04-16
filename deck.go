@@ -101,8 +101,8 @@ func SpeedTest(n int) {
 	var deck Deck
 	deck.Init()
 	for i := 0; i < n; i++ {
-		deck.Reset()
-		deck.Deal(8)
+		deck.NewDeal(4)
+		deck.Deal(4)
 	}
 	elapsed := time.Since(start).Seconds()
 	speed := float64(n) / elapsed

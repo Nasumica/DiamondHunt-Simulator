@@ -26,7 +26,7 @@ type LCPRNG struct {
 
 // # Whole Sort Of General Mish-Mash (H₂G₂)
 //
-// Cheap rng for non-rgs stuff.
+// Cheap, fast and thread-safe rng for non-rgs stuff.
 var WSOGMM LCPRNG
 
 // Current seed.
@@ -1207,6 +1207,11 @@ func (rnd *LCPRNG) Mixer(balls int) list {
 	return rnd.Fill(1, balls)
 }
 
+// Standard deck of 52 cards.
+func (rnd *LCPRNG) Deck() list {
+	return rnd.Mixer(52)
+}
+
 // Tombola mixer.
 func (rnd *LCPRNG) Tombola() list {
 	return rnd.Mixer(90)
@@ -1225,11 +1230,6 @@ func (rnd *LCPRNG) Keno() list {
 // Lucky 6 mixer.
 func (rnd *LCPRNG) Lucky6() list {
 	return rnd.Mixer(49)
-}
-
-// Standard deck of 52 cards.
-func (rnd *LCPRNG) Deck() list {
-	return rnd.Mixer(52)
 }
 
 // 2-adic multiplicative inverse for odd o else 0.
