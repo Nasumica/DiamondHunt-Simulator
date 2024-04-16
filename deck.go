@@ -2,9 +2,6 @@ package main
 
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 
-var Kinds = [...]string{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
-var Suits = [...]string{"♠", "♦", "♥", "♣"} // preferans order
-
 type Card struct {
 	Face  string
 	Kind  int
@@ -16,6 +13,8 @@ type Card struct {
 
 // Reveal card.
 func (card *Card) Reveal() {
+	var Kinds = [...]string{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
+	var Suits = [...]string{"♠", "♦", "♥", "♣"} // preferans order
 	if c := card.Card; 1 <= c && c <= 52 {
 		c--
 		k, s := c/4, c%4

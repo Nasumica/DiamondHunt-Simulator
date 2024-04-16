@@ -38,7 +38,7 @@ func SpeedTest(n int) {
 		diam.Int(k)
 		cat[k]++
 	}
-	fmt.Printf("random deal simulation %d runs\n", n)
+	fmt.Printf("random simulation %d deals\n", n)
 	for h, o := range opens {
 		fmt.Println()
 		hp := float64(o) / float64(n)
