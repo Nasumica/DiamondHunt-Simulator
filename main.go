@@ -25,27 +25,33 @@ func SpeedTest(n int) {
 	var sw StopWatch
 	sw.Start()
 	var scr Screen
-	var swap, diam, win StatCalc
+	var swap, diam StatCalc
 	cat := [5]int{}
+	opens := [5]int{}
 	chart := [5][5]int{}
 	for i := 0; i < n; i++ {
 		d, s := scr.Play()
 		swap.Int(s)
-		k := 0
-		for _, c := range d {
-			if c.Suit == DiamondSuit {
-				k++
-			}
-		}
+		opens[scr.Open]++
+		k := Diamonds(d)
 		chart[scr.Open][k]++
-		if k < 3 {
-			win.Int(0)
-		} else {
-			win.Int(100)
-		}
 		diam.Int(k)
 		cat[k]++
 	}
+	fmt.Printf("random simulation %d runs\n", n)
+	for h, o := range opens {
+		fmt.Println()
+		hp := float64(o) / float64(n)
+		fmt.Printf("%d  %9d  %9.5f%%\n", h, o, 100*hp)
+		for d, c := range chart[h] {
+			dp := float64(c) / float64(o)
+			tp := float64(c) / float64(n)
+			fmt.Printf("%15s", "")
+			fmt.Printf("%d  %9d  %9.5f%%  %9.5f%%", d, c, 100*tp, 100*dp)
+			fmt.Println()
+		}
+	}
+	fmt.Println()
 	elapsed, speed := sw.Eplased(n)
 	fmt.Printf("%d games,  %.0f swaps,  elapsed = %.3f\",  speed = %.0f deals / s\n", n, swap.Sum, elapsed, speed)
 }
@@ -81,10 +87,10 @@ func Chart(runs float64) {
 }
 
 func main() {
-	var scr Screen
-	for i := 1; i <= 10; i++ {
-		fmt.Println(scr.Play())
-	}
+	// var scr Screen
+	// for i := 1; i <= 10; i++ {
+	// 	fmt.Println(scr.Play())
+	// }
 	// Chart(35000000)
 	SpeedTest(1 * 1000000)
 }

@@ -10,6 +10,16 @@ const ( // preferans order
 	ClubSuit    // ♣, tref, детелина
 )
 
+func Diamonds(cards []Card) int {
+	n := 0
+	for _, c := range cards {
+		if c.Suit == DiamondSuit {
+			n++
+		}
+	}
+	return n
+}
+
 type Screen struct {
 	Hand   []Card
 	Diam   []Card
