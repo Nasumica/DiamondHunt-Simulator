@@ -1,10 +1,5 @@
 package main
 
-import (
-	"fmt"
-	"time"
-)
-
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 
 var Kinds = [...]string{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
@@ -16,6 +11,7 @@ type Card struct {
 	Suit  int
 	Card  int
 	Index int
+	Load  int
 }
 
 // Reveal card.
@@ -26,14 +22,39 @@ func (card *Card) Reveal() {
 		card.Face = Kinds[k] + Suits[s]
 		card.Kind = k + 2
 		card.Suit = s + 1
+		card.Load = card.Card
+		if card.Suit == 2 { // karo
+			l := card.Kind
+			if l >= 11 {
+				l = 25 - l
+			}
+			card.Load = l + 52
+		}
 	} else {
 		card.Face, card.Kind, card.Suit = "", 0, 0
 	}
 }
 
-// Swap with other card.
-func (card *Card) Swap(other *Card) {
-	*card, *other = *other, *card
+func SortCards(c *[]Card) {
+	n := len(*c)
+	for r := 1; r < n; r++ {
+		p := (*c)[r]
+		l := r
+		for ; l > 0 && (*c)[l-1].Load < p.Load; l-- {
+			(*c)[l] = (*c)[l-1]
+		}
+		(*c)[l] = p
+	}
+}
+
+var CardVirtues []Card
+
+func InitVirtues() {
+	for i := 0; i <= 52; i++ {
+		c := Card{Card: i}
+		c.Reveal()
+		CardVirtues = append(CardVirtues, c)
+	}
 }
 
 // Deck of cards.
@@ -50,7 +71,7 @@ func (deck *Deck) Init() {
 	deck.Reset()
 }
 
-// New deal.
+// Reset.
 func (deck *Deck) Reset() {
 	deck.Rest = len(deck.Cards)
 }
@@ -59,8 +80,8 @@ func (deck *Deck) Reset() {
 func (deck *Deck) Draw() (card Card) {
 	if deck.Rest > 0 {
 		n := deck.Croupier.Choice(deck.Rest)
-		card.Index, card.Card = n, deck.Cards[n]
-		card.Reveal()
+		c := deck.Cards[n]
+		card = CardVirtues[c]
 		deck.Rest--
 		deck.Cards[deck.Rest], deck.Cards[n] = deck.Cards[n], deck.Cards[deck.Rest]
 	} else {
@@ -74,7 +95,11 @@ func (deck *Deck) Deal(cards int) (deal []Card) {
 	if cards > 0 {
 		deal = make([]Card, cards)
 		for i := range deal {
-			deal[i] = deck.Draw()
+			c := deck.Draw()
+			if c.Index >= 0 {
+				c.Index = i
+			}
+			deal[i] = c
 		}
 	}
 	return
@@ -96,22 +121,10 @@ func Likelihood(cards []Card) ([]int, int) {
 	return p.Likelihood(h)
 }
 
-func SpeedTest(n int) {
-	start := time.Now()
-	var deck Deck
-	deck.Init()
-	for i := 0; i < n; i++ {
-		deck.NewDeal(4)
-		deck.Deal(4)
-	}
-	elapsed := time.Since(start).Seconds()
-	speed := float64(n) / elapsed
-	fmt.Printf("elapsed = %.3f\",  speed = %.0f deals / s\n", elapsed, speed)
-}
-
 // Croupier with deck of cards.
 var Dealer Deck
 
 func init() {
+	InitVirtues()
 	Dealer.Init()
 }
