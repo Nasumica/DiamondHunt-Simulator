@@ -13,6 +13,7 @@ const ( // preferans order
 type Screen struct {
 	Hand   []Card
 	Diam   []Card
+	Open   int
 	Swaped int
 }
 
@@ -26,6 +27,12 @@ func (s *Screen) Deal() {
 	s.Diam = Dealer.Deal(0)    // no cards in diamond yet
 	s.Sort()                   // best strategy sort
 	s.Swaped = 0               // reset counter
+	s.Open = 0
+	for _, c := range s.Hand {
+		if c.Suit == DiamondSuit {
+			s.Open++
+		}
+	}
 }
 
 // Reveal new card in diamond.
