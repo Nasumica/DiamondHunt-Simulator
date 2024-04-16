@@ -1,10 +1,5 @@
 package main
 
-import (
-	"fmt"
-	"time"
-)
-
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 
 const ( // preferans order
@@ -47,29 +42,19 @@ func (s *Screen) Swap(n int) {
 
 func (s *Screen) Hunt() {
 	d := s.Next()
-	h := s.Hand[s.Swaped]
-	if h.Load > d.Load {
-		s.Swap(s.Swaped)
+	h := s.Hand[0]
+	if h.Suit == DiamondSuit && h.Load > d.Load {
+		s.Swap(0)
+		s.Sort() // can be improved
 		s.Swaped++
 	}
 }
 
-func (s *Screen) Play() []Card {
+func (s *Screen) Play() ([]Card, int) {
 	s.Deal()
 	s.Hunt()
 	s.Hunt()
 	s.Hunt()
 	s.Hunt()
-	return s.Diam
-}
-
-func SpeedTest(n int) {
-	start := time.Now()
-	var scr Screen
-	for i := 0; i < n; i++ {
-		scr.Play()
-	}
-	elapsed := time.Since(start).Seconds()
-	speed := float64(n) / elapsed
-	fmt.Printf("elapsed = %.3f\",  speed = %.0f deals / s\n", elapsed, speed)
+	return s.Diam, s.Swaped
 }

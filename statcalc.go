@@ -2,7 +2,9 @@ package main
 
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 
-import "math"
+import (
+	"math"
+)
 
 // # Statistical calculator
 type StatCalc struct {
