@@ -686,7 +686,7 @@ func (rnd *LCPRNG) SnedecorsF(d1, d2 float) (f float) {
 //
 // Weighted random cuts.
 //
-//	s = Σ ɑ
+//	s  = Σ ɑ
 //	μᵢ = ɑᵢ / s
 //	σᵢ = sqrt(ɑᵢ ✶ (s - ɑᵢ) / (s + 1)) / s
 func (rnd *LCPRNG) Dirichlet(ɑ ...float) (d array) {
@@ -746,8 +746,7 @@ func (rnd *LCPRNG) Maxwellian(M, T float) (v float) {
 	case T == 0: // absolute zero
 		v = 0
 	default: // Brownian motion
-		v = math.Sqrt(rnd.ChiSquared(3) * R * T / M)
-		v = math.Min(v, c)
+		v = math.Max(math.Sqrt(rnd.ChiSquared(3)*R*T/M), c)
 	}
 	return
 }
