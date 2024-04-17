@@ -713,12 +713,14 @@ func (rnd *LCPRNG) Dirichlet(ɑ ...float) (d array) {
 //	M = molar mass (g/mol)
 //	T = temperature (°C)
 //
-// For example:
+// For example, use
+//
+//	Maxwellian(32, 25)
+//
+// for
 //
 //	M (oxygen molecule O₂) = 16 · 2 = 32 g/mol
 //	T (room temperature) = 25°C
-//
-//	Maxwellian(32, 25)
 func (rnd *LCPRNG) Maxwellian(M, T float) (v float) {
 	const (
 		O = -273.15       // Absolute zero (°C)
