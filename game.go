@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 
@@ -87,7 +89,7 @@ func (scr *Screen) Hunt() bool {
 }
 
 // Play one hand.
-func (scr *Screen) Play() Response {
+func (scr *Screen) Play() HuntResponse {
 	scr.Deal()
 	for f := true; f; {
 		f = scr.Hunt()
@@ -95,7 +97,7 @@ func (scr *Screen) Play() Response {
 	return scr.Eval()
 }
 
-type Response struct {
+type HuntResponse struct {
 	Hand     []Card  // closing hand (diamonds only)
 	Value    int     // hand value
 	Count    int     // number of ♦
@@ -108,10 +110,10 @@ type Response struct {
 }
 
 // Evaluate hand.
-func (scr *Screen) Eval() (resp Response) {
+func (scr *Screen) Eval() (resp HuntResponse) {
 	resp.Swaped = scr.Swaped
 	for _, c := range scr.Diam {
-		c.Reveal()
+		// c.Reveal()
 		if c.Suit == DiamondSuit {
 			resp.Count++
 			resp.Value *= 16
@@ -164,23 +166,21 @@ func AddCat(cat string, x float64) {
 	CatStat[cat] = c
 }
 
-func DiamondHunt(iter int) {
+func DiamondHunt(iter int, chips ...float64) {
 	var scr Screen
 	var bet, win StatCalc
 	bet.Cat, win.Cat = "bet", "win"
 
 	for cnt := 1; cnt <= iter; cnt++ {
-		bet.Add(1)
-		fg := 0
-		play := 0
+		chip := WSOGMM.Value(1, &chips)
+		bet.Add(chip)
+
+		fg, play := 0, 0
 		for run := 1; run > 0; run-- {
 			play++
 			ans := scr.Play()
-			// if ans.Free > 0 {
-			// 	AddCat("free", float64(ans.Free))
-			// 	ans.Win += float64(ans.Free)
-			// }
 			if ans.Win > 0 {
+				ans.Win *= chip
 				win.Add(ans.Win)
 			}
 			if ans.Free > 0 {
@@ -206,5 +206,5 @@ func DiamondHunt(iter int) {
 }
 
 func init() {
-	DiamondHunt(10 * million)
+	DiamondHunt(10*million, 2, 4, 4, 4, 5, 5, 7, 9)
 }

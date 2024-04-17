@@ -223,23 +223,23 @@ func (rnd *LCPRNG) HyperGeometric(draw, succ, size int) (hits int) {
 }
 
 // Random list index for non-empty list else -1.
-func (rnd *LCPRNG) Index(a *list) int {
-	return rnd.Choice(len(*a))
+func (rnd *LCPRNG) Index(items *list) int {
+	return rnd.Choice(len(*items))
 }
 
 // Random item of list.
-func (rnd *LCPRNG) Item(a *list) int {
-	if i := rnd.Index(a); i < 0 {
-		return i
+func (rnd *LCPRNG) Item(def int, items *list) int {
+	if i := rnd.Index(items); i < 0 {
+		return def
 	} else {
-		return (*a)[i]
+		return (*items)[i]
 	}
 }
 
-// Random value from non-empty array else NaN.
-func (rnd *LCPRNG) Value(values *array) float {
+// Random value from non-empty array else default.
+func (rnd *LCPRNG) Value(def float, values *array) float {
 	if n := rnd.Choice(len(*values)); n < 0 {
-		return math.NaN()
+		return def
 	} else {
 		return (*values)[n]
 	}
