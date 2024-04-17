@@ -509,14 +509,14 @@ func (rnd *LCPRNG) Poisson(ƛ float) (n int) {
 	const limit = 256
 	if ƛ > 0 {
 		if ƛ < limit { // Knuth method
-			l := math.Exp(-ƛ)
-			for p := rnd.Random(); p > l; n++ {
+			ƛ = math.Exp(-ƛ)
+			for p := rnd.Random(); p > ƛ; n++ {
 				p *= rnd.Random()
 			}
 		} else { // Variance stabilizing
 			const adj = 0.25 // adjustment (empirical = variance)
-			x := rnd.Normal(math.Sqrt(ƛ-adj), 0.5)
-			n = int(math.Round(x * x))
+			ƛ = rnd.Normal(math.Sqrt(ƛ-adj), 0.5)
+			n = int(math.Round(ƛ * ƛ))
 		}
 	}
 	return
