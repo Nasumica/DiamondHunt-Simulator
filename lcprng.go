@@ -112,7 +112,7 @@ func (rnd *LCPRNG) Prev() octa {
 
 // Next random value from generator limited to range [0, n].
 //
-//	μ = n / 2
+//	μ  = n / 2
 //	σ² = n · (n + 2) / 12
 func (rnd *LCPRNG) Limited(n octa) octa {
 	if n != 0 {
@@ -137,7 +137,7 @@ func (rnd *LCPRNG) Int(m, n int) int {
 
 // Random integer in range [0, n) for positive n, -1 for n = 0, else in range [n, -1].
 //
-//	μ = (n - 1) / 2
+//	μ  = (n - 1) / 2
 //	σ² = (n² - 1) / 12
 func (rnd *LCPRNG) Choice(n int) int {
 	if n > 1 {
@@ -385,7 +385,7 @@ func (rnd *LCPRNG) Rayleigh(σ float) float {
 
 // Arcus distribution random variable (-1, 1).
 //
-//	μ = 0
+//	μ  = 0
 //	σ² = 1/2
 func (rnd *LCPRNG) Arcus() float {
 	return math.Sin(rnd.Angle())
@@ -393,7 +393,7 @@ func (rnd *LCPRNG) Arcus() float {
 
 // ArcSine distribution random variable (0, 1).
 //
-//	μ = 1/2
+//	μ  = 1/2
 //	σ² = 1/8
 func (rnd *LCPRNG) ArcSine() float {
 	return (rnd.Arcus() + 1) / 2
@@ -504,6 +504,8 @@ func (rnd *LCPRNG) Logistic(μ, s float) (l float) {
 
 // Poisson distribution random variable.
 //
+//	μ = σ² = ƛ
+//
 //	p(n) = exp(-ƛ) ✶ ƛⁿ / n!
 func (rnd *LCPRNG) Poisson(ƛ float) (n int) {
 	const limit = 256
@@ -523,6 +525,9 @@ func (rnd *LCPRNG) Poisson(ƛ float) (n int) {
 }
 
 // Skellam distribution random variable.
+//
+//	μ  = μ₁ - μ₂
+//	σ² = μ₁ + μ₂
 func (rnd *LCPRNG) Skellam(μ1, μ2 float) (n int) {
 	if μ1 >= 0 && μ2 >= 0 {
 		n = rnd.Poisson(μ1) - rnd.Poisson(μ2)
@@ -531,6 +536,9 @@ func (rnd *LCPRNG) Skellam(μ1, μ2 float) (n int) {
 }
 
 // Hermite distribution random variable.
+//
+//	μ  = ɑ₁ + 2ɑ₂
+//	σ² = ɑ₁ + 4ɑ₂
 func (rnd *LCPRNG) Hermite(ɑ1, ɑ2 float) (n int) {
 	if ɑ1 >= 0 && ɑ2 >= 0 {
 		n = rnd.Poisson(ɑ1) + 2*rnd.Poisson(ɑ2)
@@ -584,7 +592,7 @@ func (rnd *LCPRNG) Erlang(k int, ƛ float) float {
 //
 // Sum of α Exponential(β) randoms.
 //
-//	μ = ɑ / β
+//	μ  = ɑ / β
 //	σ² = ɑ / β²
 func (rnd *LCPRNG) Gamma(ɑ float, β ...float) (g float) {
 	if ɑ > 0 {
@@ -647,7 +655,7 @@ func (rnd *LCPRNG) BetaPrime(ɑ, β float) (b float) {
 //
 // Normal distribution with
 //
-//	μ = 0
+//	μ  = 0
 //	σ² = ν / χ²(ν)
 //
 // For ν -> ∞, σ -> 1
