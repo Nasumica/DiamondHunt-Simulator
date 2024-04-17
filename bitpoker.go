@@ -8,9 +8,9 @@ import (
 	"time"
 )
 
-type spil = uint64
+type bits = uint64
 
-const standard_pack spil = (1 << 52) - 1 // 52 ones
+const standard_pack bits = (1 << 52) - 1 // 52 ones
 
 /*
 	AAAA KKKK QQQQ JJJJ TTTT 9999 8888 7777 6666 5555 4444 3333 2222
@@ -21,7 +21,7 @@ const standard_pack spil = (1 << 52) - 1 // 52 ones
 
 // # BitPoker Game Lore
 type BitPoker struct {
-	pack  spil       // pack of cards
+	pack  bits       // pack of cards
 	order [10]int    // hands order
 	power [10]int    // hands strength
 	Wheel bool       // Is 5432A = straight?
@@ -31,7 +31,7 @@ type BitPoker struct {
 }
 
 // Init poker game.
-func (bp *BitPoker) Init(pack spil, wheel bool, order []int, maps ...[]string) (err error) {
+func (bp *BitPoker) Init(pack bits, wheel bool, order []int, maps ...[]string) (err error) {
 	bp.pack = pack & standard_pack
 	if l := bp.Length(bp.pack); l < 5 {
 		err = errors.New("unexpectedError")
@@ -40,7 +40,7 @@ func (bp *BitPoker) Init(pack spil, wheel bool, order []int, maps ...[]string) (
 	bp.Wheel = wheel
 
 	copy(bp.order[:], order)
-	const order_mask spil = 1<<10 - 1 // 10 ones
+	const order_mask bits = 1<<10 - 1 // 10 ones
 	if len(order) != 10 || bp.Deflate(order) != order_mask {
 		err = errors.New("unexpectedError")
 	} else {
@@ -68,12 +68,12 @@ func (bp *BitPoker) Init(pack spil, wheel bool, order []int, maps ...[]string) (
 }
 
 // Pack of cards used in poker game.
-func (bp *BitPoker) Pack() spil {
+func (bp *BitPoker) Pack() bits {
 	return bp.pack
 }
 
 // Rest of cards.
-func (bp *BitPoker) Rest(hold spil) spil {
+func (bp *BitPoker) Rest(hold bits) bits {
 	return bp.pack & ^hold
 }
 
@@ -199,7 +199,7 @@ There are 7462 different hands:
 	8DCBA9 straight flush
 	9EDCBA royal flush (strongest)
 */
-func (bp *BitPoker) Hand(hold spil) string {
+func (bp *BitPoker) Hand(hold bits) string {
 	const (
 		kenta int = 0b11111          // 5 consecutive kinds
 		A5432 int = 0b10000000011110 // A5432 mask
@@ -313,14 +313,14 @@ func (bp *BitPoker) HandCode(hand string) int {
 }
 
 // Returns poker hand code only, from 0 to 9.
-func (bp *BitPoker) Code(hold spil) int {
+func (bp *BitPoker) Code(hold bits) int {
 	return bp.HandCode(bp.Hand(hold))
 }
 
 // Best poker hand with keep number of cards from hold and rest from desk.
 //
 // Returns hand code and selected cards from hold and desk.
-func (bp *BitPoker) Holdem(hold, desk spil, keep int) (mc string, mh, md spil) {
+func (bp *BitPoker) Holdem(hold, desk bits, keep int) (mc string, mh, md bits) {
 	bp.ensure()                             // ensure pack
 	hold, desk = hold&bp.pack, desk&bp.pack // remove non-standard cards (if any)
 	desk ^= hold & desk                     // remove duplicates from desk (if any)
@@ -350,7 +350,7 @@ func (bp *BitPoker) Holdem(hold, desk spil, keep int) (mc string, mh, md spil) {
 // Best poker hand from all hold cards and rest from desk.
 //
 // Returns hand code and selected cards from desk.
-func (bp *BitPoker) ElGordo(hold, desk spil) (string, spil) {
+func (bp *BitPoker) ElGordo(hold, desk bits) (string, bits) {
 	bp.ensure()
 	code, _, draw := bp.Holdem(hold, desk, bp.Length(hold&bp.pack))
 	return code, draw
@@ -359,7 +359,7 @@ func (bp *BitPoker) ElGordo(hold, desk spil) (string, spil) {
 // Best poker hand from all hold cards and rest of pack.
 //
 // Returns hand code and joker replacements.
-func (bp *BitPoker) JokerWild(hold spil) (string, spil) {
+func (bp *BitPoker) JokerWild(hold bits) (string, bits) {
 	bp.ensure()
 	return bp.ElGordo(hold, hold^bp.pack)
 }
@@ -367,12 +367,12 @@ func (bp *BitPoker) JokerWild(hold spil) (string, spil) {
 // Best poker hand from pile of 5 or more cards.
 //
 // Returns hand code and selected cards from pile.
-func (bp *BitPoker) BestOf(pile spil) (string, spil) {
+func (bp *BitPoker) BestOf(pile bits) (string, bits) {
 	return bp.ElGordo(0, pile)
 }
 
 // What could this be?
-func (bp *BitPoker) WhatIs(pile spil) (string, spil, spil) {
+func (bp *BitPoker) WhatIs(pile bits) (string, bits, bits) {
 	bp.ensure()
 	pile &= bp.pack
 	if l := bp.Length(pile); l > 5 {
@@ -390,7 +390,7 @@ func (bp *BitPoker) WhatIs(pile spil) (string, spil, spil) {
 // Texas Holdem best poker hand from hold and desk.
 //
 // Returns hand code and selected cards from hold and desk.
-func (bp *BitPoker) TexasHoldem(hold, desk spil) (string, spil, spil) {
+func (bp *BitPoker) TexasHoldem(hold, desk bits) (string, bits, bits) {
 	desk ^= hold & desk                   // no duplicates
 	code, best := bp.BestOf(hold | desk)  // best hand
 	return code, hold & best, desk & best // split hand
@@ -399,12 +399,12 @@ func (bp *BitPoker) TexasHoldem(hold, desk spil) (string, spil, spil) {
 // Omaha Holdem best poker hand with 2 cards from hold and 3 from desk.
 //
 // Returns hand code and selected cards from hold and desk.
-func (bp *BitPoker) OmahaHoldem(hold, desk spil) (string, spil, spil) {
+func (bp *BitPoker) OmahaHoldem(hold, desk bits) (string, bits, bits) {
 	return bp.Holdem(hold, desk, 2)
 }
 
 // Create cards indices from pile of cards.
-func (bp *BitPoker) Inflate(pile spil) []int {
+func (bp *BitPoker) Inflate(pile bits) []int {
 	r := []int{}
 	/*
 		// Naive way
@@ -424,8 +424,8 @@ func (bp *BitPoker) Inflate(pile spil) []int {
 }
 
 // Create pile of cards from cards indices.
-func (bp *BitPoker) Deflate(r []int) spil {
-	var n spil
+func (bp *BitPoker) Deflate(r []int) bits {
+	var n bits
 	for _, b := range r {
 		if 0 <= b && b < 64 {
 			n |= 1 << b
@@ -435,7 +435,7 @@ func (bp *BitPoker) Deflate(r []int) spil {
 }
 
 // Arange pile as cards in order of significance.
-func (bp *BitPoker) Arange(pile spil) []int {
+func (bp *BitPoker) Arange(pile bits) []int {
 	bp.ensure()
 	pile &= bp.pack
 	d := bp.Inflate(pile)
@@ -484,14 +484,14 @@ func (bp *BitPoker) Stringify(d []int, maps ...[]string) []string {
 }
 
 // Human view of arranged cards list.
-func (bp *BitPoker) Humanize(pile spil, maps ...[]string) []string {
+func (bp *BitPoker) Humanize(pile bits, maps ...[]string) []string {
 	return bp.Stringify(bp.Arange(pile), maps...)
 }
 
 // Create pile of cards from engine cards.
-func (bp *BitPoker) Squeeze(cards ...int) spil {
+func (bp *BitPoker) Squeeze(cards ...int) bits {
 	bp.ensure()
-	var pile spil
+	var pile bits
 	for _, c := range cards {
 		if 1 <= c && c <= 52 {
 			pile |= 1 << (c - 1)
@@ -501,7 +501,7 @@ func (bp *BitPoker) Squeeze(cards ...int) spil {
 }
 
 // Expand pile of cards as engine cards.
-func (bp *BitPoker) Expand(pile spil) []int {
+func (bp *BitPoker) Expand(pile bits) []int {
 	a := bp.Arange(pile)
 	for i := range a {
 		a[i]++
@@ -510,12 +510,12 @@ func (bp *BitPoker) Expand(pile spil) []int {
 }
 
 // Determines players standing list according to given rule.
-func (bp *BitPoker) PlayPokerHand(players []spil, desk spil, rule func(hold, desk spil) (string, spil, spil)) (codes []string, stand [][]int) {
+func (bp *BitPoker) PlayPokerHand(players []bits, desk bits, rule func(hold, desk bits) (string, bits, bits)) (codes []string, stand [][]int) {
 	// calculate hands and sort list
 	type hand struct {
 		p    int    // player
 		c    string // code
-		h, d spil   // hold, desk (future use)
+		h, d bits   // hold, desk (future use)
 	}
 	hands := make([]hand, len(players))
 	for p, hold := range players {
@@ -540,17 +540,17 @@ func (bp *BitPoker) PlayPokerHand(players []spil, desk spil, rule func(hold, des
 }
 
 // Determines players standing list according to Texas Holdem rule.
-func (bp *BitPoker) PlayTexasHand(players []spil, desk spil) ([]string, [][]int) {
+func (bp *BitPoker) PlayTexasHand(players []bits, desk bits) ([]string, [][]int) {
 	return bp.PlayPokerHand(players, desk, bp.TexasHoldem)
 }
 
 // Determines players standing list according to Omaha Holdem rule.
-func (bp *BitPoker) PlayOmahaHand(players []spil, desk spil) ([]string, [][]int) {
+func (bp *BitPoker) PlayOmahaHand(players []bits, desk bits) ([]string, [][]int) {
 	return bp.PlayPokerHand(players, desk, bp.OmahaHoldem)
 }
 
 // Determines players standing list according to Classic Poker rule.
-func (bp *BitPoker) PlayClassicHand(players []spil) ([]string, [][]int) {
+func (bp *BitPoker) PlayClassicHand(players []bits) ([]string, [][]int) {
 	return bp.PlayTexasHand(players, 0)
 }
 
@@ -629,7 +629,7 @@ Naravno, 1 - n / n = 0, jer je, u ovom slučaju, minus binarna operacija.
 */
 
 // Count bit 1.
-func (bp *BitPoker) Length(n spil) int {
+func (bp *BitPoker) Length(n bits) int {
 	// Keringhan bitcount (faster for sparse n)
 	o := 0
 	for ; n != 0; o++ {
@@ -675,7 +675,7 @@ func Implode(e []int) int {
 */
 
 // Leftmost bit 1 position.
-func (bp *BitPoker) Leftmost(n spil) int { // = floor(lg(n))
+func (bp *BitPoker) Leftmost(n bits) int { // = floor(lg(n))
 	if n == 0 {
 		return -1
 	}
@@ -699,7 +699,7 @@ func (bp *BitPoker) Leftmost(n spil) int { // = floor(lg(n))
 }
 
 // Rightmost bit 1 position.
-func (bp *BitPoker) Rightmost(n spil) int { // = Length(n - 1) + 1 - Length(n)
+func (bp *BitPoker) Rightmost(n bits) int { // = Length(n - 1) + 1 - Length(n)
 	if n == 0 {
 		return -1
 	}
@@ -728,13 +728,13 @@ type sampler struct {
 	n int    // total cards
 	k int    // sample size
 	e bool   // eof?
-	b []spil // bits
+	b []bits // bits
 	c []int  // counters
 }
 
 // Initialise generator with pile of cards and sample size and return success.
-func (s *sampler) Init(pile spil, size int) bool {
-	s.b, s.c = []spil{}, []int{}
+func (s *sampler) Init(pile bits, size int) bool {
+	s.b, s.c = []bits{}, []int{}
 	for pile != 0 {
 		s.b = append(s.b, -pile&pile)
 		pile &= pile - 1
@@ -759,7 +759,7 @@ func (s *sampler) Reset() bool {
 }
 
 // Next combination.
-func (s *sampler) Next() (c spil) {
+func (s *sampler) Next() (c bits) {
 	if !s.e {
 		var j int
 		for j = 0; j < s.k; j++ {
@@ -1014,7 +1014,7 @@ var WildCardComb = [6][10]int{
 	{0, 0, 0, 0, 0, 0, 0, 0, 32, 20},
 	{0, 0, 0, 0, 0, 0, 0, 0, 0, 1}}
 
-func (bp *BitPoker) Likelihood(hold spil) (list []int, sum int) {
+func (bp *BitPoker) Likelihood(hold bits) (list []int, sum int) {
 	bp.ensure() // ensure pack
 
 	hold &= bp.pack // remove non-standard cards (if any)
@@ -1083,7 +1083,7 @@ func CountCombs(w int) (card, wild [10]int) {
 	return
 }
 
-func (bp *BitPoker) MinMax(hold spil, min int) (worst, best string) {
+func (bp *BitPoker) MinMax(hold bits, min int) (worst, best string) {
 	bp.ensure() // ensure pack
 	if min < 2 {
 		min = 2

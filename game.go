@@ -89,13 +89,13 @@ func (scr *Screen) Hunt() (more bool) {
 }
 
 // Play one hand.
-func (scr *Screen) Play() HuntResponse {
+func (scr *Screen) Play(bet float64) HuntResponse {
 	scr.Deal()
 	scr.Sort() // best strategy sort
 	for next := true; next; {
 		next = scr.Hunt()
 	}
-	return scr.Eval()
+	return scr.Eval(bet)
 }
 
 type HuntResponse struct {
@@ -114,7 +114,7 @@ type HuntResponse struct {
 }
 
 // Evaluate hand.
-func (scr *Screen) Eval() (resp HuntResponse) {
+func (scr *Screen) Eval(bet float64) (resp HuntResponse) {
 	resp.Swaps = scr.Swaps
 	for _, c := range scr.Diam {
 		if c.Suit == DiamondSuit {
@@ -126,7 +126,7 @@ func (scr *Screen) Eval() (resp HuntResponse) {
 			resp.Value = (resp.Value << 4) + c.Kind // hex
 		}
 	}
-	const straight int = 0xbcde
+	const straight int = 0xbcde // JQKA
 	resp.Straight = resp.Value == straight
 
 	resp.Cat = fmt.Sprintf("%d♦", resp.Count)
@@ -135,15 +135,15 @@ func (scr *Screen) Eval() (resp HuntResponse) {
 	case 3:
 		resp.Free = 1
 	case 4:
-		resp.Win = 4
+		resp.Win = 4 * bet
 		switch resp.Royals {
 		case 0:
 		case 4:
 			if resp.Straight {
-				resp.JackPot = 6000
+				resp.JackPot = 6000 * bet
 				resp.Name = "straight"
 			} else {
-				resp.JackPot = 800
+				resp.JackPot = 800 * bet
 				resp.Name = "royals"
 			}
 		default:
@@ -181,16 +181,18 @@ func DiamondHunt(iter int, chips ...float64) {
 		fg, play := 0, 0
 		for run := 1; run > 0; run-- {
 			play++
-			ans := scr.Play()
+			ans := scr.Play(chip)
 			if ans.Total > 0 {
-				ans.Total *= chip
 				win.Add(ans.Total)
 			}
 			if ans.Free > 0 {
 				run += ans.Free
 				fg += ans.Free
 			}
-			AddCat(ans.Cat, ans.Total)
+			AddCat(ans.Cat, ans.Win)
+			if ans.JackPot > 0 {
+				AddCat(ans.Name, ans.JackPot)
+			}
 			CntStat[ans.Count].Add(ans.Total)
 		}
 		AddCat("play", float64(play))

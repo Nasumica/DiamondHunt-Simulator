@@ -13,12 +13,12 @@ type Card struct {
 
 // Reveal card.
 func (card *Card) Reveal() {
-	var Kinds = [...]string{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
-	var Suits = [...]string{"♠", "♦", "♥", "♣"} // preferans order
+	var kinds = [...]string{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
+	var suits = [...]string{"♠", "♦", "♥", "♣"} // preferans order
 	if c := card.Card; 1 <= c && c <= 52 {
 		c--
 		k, s := c/4, c%4
-		card.Face = Kinds[k] + Suits[s]
+		card.Face = kinds[k] + suits[s]
 		card.Kind = k + 2
 		card.Suit = s + 1
 		card.Load = card.Card
@@ -35,7 +35,8 @@ func (card *Card) Reveal() {
 }
 
 func SortCards(c *[]Card) {
-	n, l, r := len(*c), 0, 0
+	n := len(*c)
+	var l, r int
 	for r = 1; r < n; r++ { // insertion sort
 		p := (*c)[r]
 		for l = r; l > 0 && (*c)[l-1].Load < p.Load; l-- {

@@ -23,7 +23,7 @@ func (rnd *Xaoc) Deck() (d []int) {
 	d = make([]int, 52)
 	for i := range d {
 		j := rnd.Choice(i + 1)
-		d[i], d[j] = d[j], i+1
+		d[i], d[j] = d[j], (i + 1)
 	}
 	return
 }
