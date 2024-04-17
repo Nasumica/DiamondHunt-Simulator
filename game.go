@@ -40,10 +40,10 @@ func Royals(cards []Card) int {
 
 // Game screen
 type Screen struct {
-	Hand   []Card
-	Diam   []Card
-	Open   int
-	Swaped int
+	Hand  []Card
+	Diam  []Card
+	Open  int
+	Swaps int
 }
 
 // Sort hand.
@@ -55,44 +55,45 @@ func (scr *Screen) Sort() {
 func (scr *Screen) Deal() {
 	scr.Hand = Dealer.NewDeal(4)  // 4 cards in hand from new deck
 	scr.Diam = Dealer.Deal(0)     // no cards in diamond yet
-	scr.Swaped = 0                // reset counter
+	scr.Swaps = 0                 // reset counter
 	scr.Open = Diamonds(scr.Hand) // for stat
 }
 
 // Reveal new card in diamond.
 func (scr *Screen) Next() (card Card) {
-	card = Dealer.Draw()              // draw single card from rest of the deck
+	card = Dealer.Draw() // draw single card from rest of the deck
+	card.Index = len(scr.Diam)
 	scr.Diam = append(scr.Diam, card) // add card to diamond
 	return
 }
 
-// Swap cards (if possible).
-func (scr *Screen) Swap() (f bool) {
-	l := len(scr.Diam)
-	h, d := &scr.Hand[0], &scr.Diam[l-1]
-	f = d.Suit == DiamondSuit
-	if !f {
-		if f = h.Suit == DiamondSuit && h.Load > d.Load; f { // swap
+// Hunt for diamond.
+func (scr *Screen) Hunt() (more bool) {
+	l := scr.Next().Index
+	h, d := &scr.Hand[0], &scr.Diam[l]
+
+	more = d.Suit == DiamondSuit
+	if !more {
+		if more = h.Suit == DiamondSuit && h.Load > d.Load; more { // swap
 			*h, *d = *d, *h
-			scr.Swaped++
+			(*h).Index, (*d).Index = (*d).Index, (*h).Index
+			scr.Swaps++
+			scr.Sort() // best strategy sort
 		}
 	}
-	f = f && l < 4
-	return
-}
 
-// Hunt for diamond.
-func (scr *Screen) Hunt() bool {
-	scr.Next()
-	scr.Sort() // best strategy sort
-	return scr.Swap()
+	l++
+	more = more && l < 4
+
+	return
 }
 
 // Play one hand.
 func (scr *Screen) Play() HuntResponse {
 	scr.Deal()
-	for f := true; f; {
-		f = scr.Hunt()
+	scr.Sort() // best strategy sort
+	for next := true; next; {
+		next = scr.Hunt()
 	}
 	return scr.Eval()
 }
@@ -105,23 +106,24 @@ type HuntResponse struct {
 	Straight bool    // is straight?
 	Cat      string  // category
 	Win      float64 // win amount
-	Free     int     // number of free spins
-	Swaped   int
+	JackPot  float64
+	Name     string
+	Total    float64
+	Free     int // number of free spins
+	Swaps    int
 }
 
 // Evaluate hand.
 func (scr *Screen) Eval() (resp HuntResponse) {
-	resp.Swaped = scr.Swaped
+	resp.Swaps = scr.Swaps
 	for _, c := range scr.Diam {
-		// c.Reveal()
 		if c.Suit == DiamondSuit {
 			resp.Count++
-			resp.Value *= 16
 			if c.Kind >= 11 {
 				resp.Royals++
 			}
 			resp.Hand = append(resp.Hand, c)
-			resp.Value += c.Kind
+			resp.Value = (resp.Value << 4) + c.Kind // hex
 		}
 	}
 	const straight int = 0xbcde
@@ -133,23 +135,24 @@ func (scr *Screen) Eval() (resp HuntResponse) {
 	case 3:
 		resp.Free = 1
 	case 4:
+		resp.Win = 4
 		switch resp.Royals {
 		case 0:
-			resp.Win = 4
 		case 4:
 			if resp.Straight {
-				resp.Win = 6000
-				resp.Cat = "straight"
+				resp.JackPot = 6000
+				resp.Name = "straight"
 			} else {
-				resp.Win = 800
-				resp.Cat = "royals"
+				resp.JackPot = 800
+				resp.Name = "royals"
 			}
 		default:
-			resp.Win = 4
 			resp.Free = 1
-			resp.Cat = "court"
+			resp.Name = "court"
 		}
 	}
+
+	resp.Total = resp.Win + resp.JackPot
 
 	return
 }
@@ -179,16 +182,16 @@ func DiamondHunt(iter int, chips ...float64) {
 		for run := 1; run > 0; run-- {
 			play++
 			ans := scr.Play()
-			if ans.Win > 0 {
-				ans.Win *= chip
-				win.Add(ans.Win)
+			if ans.Total > 0 {
+				ans.Total *= chip
+				win.Add(ans.Total)
 			}
 			if ans.Free > 0 {
 				run += ans.Free
 				fg += ans.Free
 			}
-			AddCat(ans.Cat, ans.Win)
-			CntStat[ans.Count].Add(ans.Win)
+			AddCat(ans.Cat, ans.Total)
+			CntStat[ans.Count].Add(ans.Total)
 		}
 		AddCat("play", float64(play))
 		if fg > 0 {
@@ -206,5 +209,5 @@ func DiamondHunt(iter int, chips ...float64) {
 }
 
 func init() {
-	DiamondHunt(10*million, 2, 4, 4, 4, 5, 5, 7, 9)
+	DiamondHunt(10 * million)
 }

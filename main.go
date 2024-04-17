@@ -31,7 +31,7 @@ func SpeedTest(n int) {
 	chart := [5][5]int{}
 	for i := 0; i < n; i++ {
 		r := scr.Play()
-		k, s := r.Count, r.Swaped
+		k, s := r.Count, r.Swaps
 		swap.Int(s)
 		opens[scr.Open]++
 		chart[scr.Open][k]++
