@@ -30,10 +30,10 @@ func SpeedTest(n int) {
 	opens := [5]int{}
 	chart := [5][5]int{}
 	for i := 0; i < n; i++ {
-		d, s := scr.Play()
+		r := scr.Play()
+		k, s := r.Count, r.Swaped
 		swap.Int(s)
 		opens[scr.Open]++
-		k := Diamonds(d)
 		chart[scr.Open][k]++
 		diam.Int(k)
 		cat[k]++
@@ -93,6 +93,6 @@ func main() {
 	// }
 	// Chart(35000000)
 	fmt.Println()
-	SpeedTest(1 * 100000)
+	SpeedTest(10 * 100000)
 	fmt.Println()
 }
