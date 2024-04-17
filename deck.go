@@ -35,11 +35,10 @@ func (card *Card) Reveal() {
 }
 
 func SortCards(c *[]Card) {
-	n := len(*c)
-	for r := 1; r < n; r++ {
+	n, l, r := len(*c), 0, 0
+	for r = 1; r < n; r++ { // insertion sort
 		p := (*c)[r]
-		l := r
-		for ; l > 0 && (*c)[l-1].Load < p.Load; l-- {
+		for l = r; l > 0 && (*c)[l-1].Load < p.Load; l-- {
 			(*c)[l] = (*c)[l-1]
 		}
 		(*c)[l] = p
@@ -58,9 +57,9 @@ func InitVirtues() {
 
 // Deck of cards.
 type Deck struct {
-	Croupier LCPRNG
 	Cards    []int
 	Rest     int
+	Croupier LCPRNG
 }
 
 // Initialize deck of cards.
@@ -108,16 +107,6 @@ func (deck *Deck) Deal(cards int) (deal []Card) {
 func (deck *Deck) NewDeal(cards int) []Card {
 	deck.Reset()
 	return deck.Deal(cards)
-}
-
-func Likelihood(cards []Card) ([]int, int) {
-	var p BitPoker
-	p.Classic()
-	var h uint64
-	for _, c := range cards {
-		h |= 1 << (c.Card - 1)
-	}
-	return p.Likelihood(h)
 }
 
 // Croupier with deck of cards.
