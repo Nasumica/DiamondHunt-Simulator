@@ -35,7 +35,11 @@ func (card *Card) Reveal() {
 }
 
 func (card *Card) IsDiam() bool {
-	return card.Suit == 2
+	return (card.Suit == 2)
+}
+
+func (card *Card) IsRoyal() bool {
+	return (card.Kind >= 11)
 }
 
 func SortCards(c *[]Card) {

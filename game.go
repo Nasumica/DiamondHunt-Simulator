@@ -72,46 +72,32 @@ func (scr *Screen) Draw() int {
 	return card.Index
 }
 
-// Swap cards (if possible).
-func (scr *Screen) Swap(d *Card) (succ bool) {
-	if succ = len(scr.Best) > 0; succ { // swap
-		j := scr.Best[0]  // get swap index
-		h := &scr.Hand[j] // card from hand
-
-		if h.Load > d.Load { // swap
-			h.Index, d.Index = d.Index, h.Index // preserve index
-			(*h), (*d) = (*d), (*h)             // swap cards
-			scr.Best = scr.Best[1:]             // remove from list
-			scr.Swaps++
-			if h.Suit == DiamondSuit { // recalc
-				scr.Strategy() // can be improved
-			}
-		}
-	}
-	return
-}
-
-func (scr *Screen) Load() (b int) {
-	if len(scr.Best) > 0 {
-		b = scr.Best[0]
-		b = scr.Hand[b].Load
-	}
-	return
-}
-
 // Hunt for diamond.
 func (scr *Screen) Hunt() (more bool) {
 	i := scr.Draw()   // diamond card index
 	d := &scr.Diam[i] // card from diamond
 
-	more = d.IsDiam()
+	if l := len(scr.Best); l > 0 { // test
+		j := scr.Best[0]  // get swap index
+		h := &scr.Hand[j] // card from hand
 
-	if len(scr.Best) > 0 {
-		more = scr.Swap(d)
+		swap := !d.IsDiam()
+
+		swap = swap || h.Load > d.Load
+
+		if swap { // swap
+			h.Index, d.Index = i, j // preserve index
+			(*h), (*d) = (*d), (*h) // swap cards
+			scr.Best = scr.Best[1:] // remove from list
+			scr.Swaps++
+			if h.IsDiam() {
+				scr.Strategy()
+			}
+		}
 	}
 
 	i++
-	more = more && i < 4
+	more = d.IsDiam() && i < 4
 
 	// return (d.Suit == DiamondSuit || scr.Swap(d)) && (i < 3)
 	return
@@ -224,34 +210,45 @@ func DiamondHunt(iter int, chips ...float64) {
 			if ans.Free > 0 {
 				AddCat("free", float64(ans.Free))
 			}
-			AddCat(ans.Cat, ans.Win)
+			if ans.Count == 3 {
+				AddCat(ans.Cat, ans.Free)
+			} else {
+				AddCat(ans.Cat, ans.Win)
+			}
 			if ans.Name != "" {
 				AddCat(ans.Name, jp)
 			}
 			CntStat[ans.Count].Add(ans.Total)
 			if ans.Royals == 4 {
-				AddCat("court", 0)
+				AddCat("court", ans.JackPot)
 			}
 		}
 
 		AddCat("play", float64(play))
 	}
 
-	rtp := win.Sum / bet.Sum
-	fmt.Printf("rtp = %.2f%%\n", 100*rtp)
+	fmt.Println()
 	play := CatStat["play"]
-	for d, s := range CntStat {
-		prob := float64(s.Cnt) / play.Sum
-		rtp := s.Sum / bet.Sum
-		fmt.Printf("%-10d  %10d  %9.5f%%  %9.5f%%  %15.2f\n", d, s.Cnt, 100*prob, 100*rtp, 1/prob)
-	}
-	for d, s := range CatStat {
+	/*
+		for d, s := range CntStat {
+			prob := float64(s.Cnt) / play.Sum
+			rtp := s.Sum / bet.Sum
+			fmt.Printf("%-10d  %10d  %9.5f%%  %9.5f%%  %15.2f\n", d, s.Cnt, 100*prob, 100*rtp, 1/prob)
+		}
+	*/
+	spisak := []string{"0♦", "1♦", "2♦", "3♦", "4♦", "straight", "four", "royal", "court", "free"}
+	for _, d := range spisak {
+		// for d, s := range CatStat {
+		s := CatStat[d]
 		prob := float64(s.Cnt) / play.Sum
 		rtp := s.Sum / bet.Sum
 		fmt.Printf("%-10s  %10d  %9.5f%%  %9.5f%%  %15.2f\n", d, s.Cnt, 100*prob, 100*rtp, 1/prob)
 	}
+	rtp := win.Sum / bet.Sum
+	fmt.Printf("rtp = %.2f%%\n", 100*rtp)
+	fmt.Println()
 }
 
 func init() {
-	DiamondHunt(20 * million)
+	DiamondHunt(10975000)
 }
