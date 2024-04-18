@@ -99,7 +99,6 @@ func (scr *Screen) Hunt() (more bool) {
 // Play one hand.
 func (scr *Screen) Play(bet float64) HuntResponse {
 	scr.Deal()
-	scr.Best() // best strategy sort
 	for next := true; next; {
 		next = scr.Hunt()
 	}
