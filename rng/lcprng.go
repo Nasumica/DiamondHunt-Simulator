@@ -167,7 +167,7 @@ func (rnd *LCPRNG) Fill(m, n int) (a list) {
 		a = make(list, n)
 		for i := range a {
 			j := rnd.Int(0, i)
-			a[i], a[j] = a[j], m+i
+			a[i], a[j] = a[j], (m + i)
 		}
 	}
 	return
@@ -746,7 +746,7 @@ func (rnd *LCPRNG) Maxwellian(M, T float) (v float) {
 	case T == 0: // absolute zero
 		v = 0
 	default: // Brownian motion
-		v = math.Max(math.Sqrt(rnd.ChiSquared(3)*R*T/M), c)
+		v = math.Min(math.Sqrt(rnd.ChiSquared(3)*R*T/M), c)
 	}
 	return
 }
@@ -815,7 +815,7 @@ func (rnd *LCPRNG) Benford(m, n int) (b int) {
 		if m == n {
 			b = m
 		} else {
-			b = int(math.Exp(rnd.Range(math.Log(float(m)), math.Log(float(n+1)))))
+			b = int(math.Exp(rnd.Range(math.Log(float(m)), math.Log(float(n)+1))))
 			if b < m {
 				b = m
 			} else if b > n {
