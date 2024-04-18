@@ -228,7 +228,7 @@ func (rnd *LCPRNG) Index(items *list) int {
 }
 
 // Random item from non-empty list else default.
-func (rnd *LCPRNG) Item(def int, items *list) int {
+func (rnd *LCPRNG) Item(items *list, def int) int {
 	if i := rnd.Index(items); i < 0 {
 		return def
 	} else {
@@ -237,7 +237,7 @@ func (rnd *LCPRNG) Item(def int, items *list) int {
 }
 
 // Random value from non-empty array else default.
-func (rnd *LCPRNG) Value(def float, values *array) float {
+func (rnd *LCPRNG) Value(values *array, def float) float {
 	if n := rnd.Choice(len(*values)); n < 0 {
 		return def
 	} else {

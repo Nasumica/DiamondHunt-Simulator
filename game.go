@@ -200,7 +200,7 @@ func DiamondHunt(iter int, chips ...float64) {
 	chart := [5][5]int{}
 
 	for cnt := 1; cnt <= iter; cnt++ {
-		chip := rng.WSOGMM.Value(1, &chips)
+		chip := rng.WSOGMM.Value(&chips, 1)
 		bet.Add(chip)
 
 		play := 0
