@@ -75,21 +75,42 @@ func (scr *Screen) Draw() int {
 // Swap cards (if possible).
 func (scr *Screen) Swap(d *Card) (succ bool) {
 	if succ = len(scr.Best) > 0; succ { // swap
-		i := scr.Best[0]              // get swap index
-		scr.Best = scr.Best[1:]       // remove from list
-		h := &scr.Hand[i]             // card from hand
-		h.Index, d.Index = d.Index, i // preserve index
-		(*h), (*d) = (*d), (*h)       // swap
-		scr.Swaps++
+		j := scr.Best[0]  // get swap index
+		h := &scr.Hand[j] // card from hand
+
+		if h.Load > d.Load { // swap
+			h.Index, d.Index = d.Index, h.Index // preserve index
+			(*h), (*d) = (*d), (*h)             // swap
+			scr.Best = scr.Best[1:]             // remove from list
+			scr.Swaps++
+			if h.Suit == DiamondSuit { // recalc
+				scr.Strategy()
+			}
+		}
+	}
+	return
+}
+
+func (scr *Screen) Load() (b int) {
+	if len(scr.Best) > 0 {
+		b = scr.Best[0]
+		b = scr.Hand[b].Load
 	}
 	return
 }
 
 // Hunt for diamond.
-func (scr *Screen) Hunt() bool {
+func (scr *Screen) Hunt() (more bool) {
 	i := scr.Draw()   // diamond card index
 	d := &scr.Diam[i] // card from diamond
-	return (d.Suit == DiamondSuit || scr.Swap(d)) && (i < 3)
+
+	more = scr.Swap(d)
+
+	i++
+	more = more && i < 4
+
+	// return (d.Suit == DiamondSuit || scr.Swap(d)) && (i < 3)
+	return
 }
 
 // Play one hand.
@@ -112,7 +133,7 @@ type HuntResponse struct {
 	JackPot  float64
 	Name     string
 	Total    float64
-	Free     int // number of free spins
+	Free     float64 // number of free spins
 	Swaps    int
 	Open     int
 }
@@ -140,24 +161,29 @@ func (scr *Screen) Eval(bet float64) (resp HuntResponse) {
 	case 3:
 		resp.Free = 1
 	case 4:
-		resp.Win = 4 * bet
+		resp.Win = 4
+
 		switch resp.Royals {
 		case 0:
 		case 4:
 			if resp.Straight {
-				resp.JackPot = 6000 * bet
+				resp.JackPot = 6000
 				resp.Name = "straight"
 			} else {
-				resp.JackPot = 800 * bet
-				resp.Name = "royals"
+				resp.JackPot = 800
+				resp.Name = "four"
 			}
 		default:
 			resp.Free = 1
-			resp.Name = "court"
+			resp.Name = "royal"
 		}
+
 	}
 
-	resp.Total = resp.Win + resp.JackPot
+	resp.Win *= bet
+	resp.JackPot *= bet
+	resp.Free *= bet
+	resp.Total = resp.Win + resp.JackPot + resp.Free
 
 	return
 }
@@ -183,27 +209,28 @@ func DiamondHunt(iter int, chips ...float64) {
 		chip := WSOGMM.Value(1, &chips)
 		bet.Add(chip)
 
-		fg, play := 0, 0
+		play := 0
 		for run := 1; run > 0; run-- {
 			play++
 			ans := scr.Play(chip)
+			jp := ans.JackPot + ans.Free
 			if ans.Total > 0 {
 				win.Add(ans.Total)
 			}
 			if ans.Free > 0 {
-				run += ans.Free
-				fg += ans.Free
+				AddCat("free", float64(ans.Free))
 			}
 			AddCat(ans.Cat, ans.Win)
-			if ans.JackPot > 0 {
-				AddCat(ans.Name, ans.JackPot)
+			if ans.Name != "" {
+				AddCat(ans.Name, jp)
 			}
 			CntStat[ans.Count].Add(ans.Total)
+			if ans.Royals == 4 {
+				AddCat("court", 0)
+			}
 		}
+
 		AddCat("play", float64(play))
-		if fg > 0 {
-			AddCat("free", float64(fg))
-		}
 	}
 
 	rtp := win.Sum / bet.Sum
@@ -211,10 +238,16 @@ func DiamondHunt(iter int, chips ...float64) {
 	play := CatStat["play"]
 	for d, s := range CntStat {
 		prob := float64(s.Cnt) / play.Sum
-		fmt.Printf("%d  %9.5f%%\n", d, 100*prob)
+		rtp := s.Sum / bet.Sum
+		fmt.Printf("%-10d  %10d  %9.5f%%  %9.5f%%  %15.2f\n", d, s.Cnt, 100*prob, 100*rtp, 1/prob)
+	}
+	for d, s := range CatStat {
+		prob := float64(s.Cnt) / play.Sum
+		rtp := s.Sum / bet.Sum
+		fmt.Printf("%-10s  %10d  %9.5f%%  %9.5f%%  %15.2f\n", d, s.Cnt, 100*prob, 100*rtp, 1/prob)
 	}
 }
 
 func init() {
-	DiamondHunt(10 * million)
+	DiamondHunt(20 * million)
 }
