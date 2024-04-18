@@ -10,6 +10,11 @@ import (
 	"time"
 )
 
+// # Whole Sort Of General Mish-Mash (H₂G₂)
+//
+// Cheap, fast and thread-safe rng for non-rgs stuff.
+var WSOGMM LCPRNG
+
 type ( // type aliases used in this module
 	octa  = uint64  // unsigned octabyte
 	list  = []int   // integers array
@@ -23,11 +28,6 @@ type LCPRNG struct {
 	seed octa       // generator seed
 	dog  sync.Mutex // watchdog Šarko
 }
-
-// # Whole Sort Of General Mish-Mash (H₂G₂)
-//
-// Cheap, fast and thread-safe rng for non-rgs stuff.
-var WSOGMM LCPRNG
 
 // Current seed.
 func (rnd *LCPRNG) Seed() octa {
@@ -142,10 +142,10 @@ func (rnd *LCPRNG) Int(m, n int) int {
 func (rnd *LCPRNG) Choice(n int) int {
 	if n > 1 {
 		return int(rnd.Limited(octa(n - 1)))
-	} else if n >= 0 {
-		return n - 1
-	} else {
+	} else if n < 0 {
 		return -int(rnd.Limited(octa(-n-1))) - 1
+	} else {
+		return n - 1
 	}
 }
 
@@ -227,7 +227,7 @@ func (rnd *LCPRNG) Index(items *list) int {
 	return rnd.Choice(len(*items))
 }
 
-// Random item of list.
+// Random item from non-empty list else default.
 func (rnd *LCPRNG) Item(def int, items *list) int {
 	if i := rnd.Index(items); i < 0 {
 		return def
