@@ -1,5 +1,7 @@
 package main
 
+import "DHSimulator/rng"
+
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 
 type Card struct {
@@ -69,7 +71,7 @@ func InitVirtues() {
 type Deck struct {
 	Cards    []int
 	Rest     int
-	Croupier LCPRNG
+	Croupier rng.LCPRNG
 }
 
 // Initialize deck of cards.

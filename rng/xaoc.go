@@ -1,4 +1,4 @@
-package main
+package rng
 
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 

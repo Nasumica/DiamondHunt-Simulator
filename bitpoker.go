@@ -3,6 +3,7 @@ package main
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 
 import (
+	"DHSimulator/rng"
 	"errors"
 	"fmt"
 	"time"
@@ -1184,6 +1185,6 @@ func Trifoil() (list []int) {
 	for i := range tri {
 		list = append(list, i)
 	}
-	WSOGMM.Sort(&list)
+	rng.WSOGMM.Sort(&list)
 	return
 }

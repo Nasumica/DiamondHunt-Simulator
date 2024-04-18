@@ -1,12 +1,13 @@
 package main
 
 import (
+	"DHSimulator/rng"
 	"fmt"
 )
 
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 
-const million = 1000 * 1000
+// const million = 1000 * 1000
 
 const ( // preferans order
 	NoSuit      = iota
@@ -195,14 +196,19 @@ func DiamondHunt(iter int, chips ...float64) {
 	var bet, win StatCalc
 	bet.Cat, win.Cat = "bet", "win"
 
+	opens := [5]int{}
+	chart := [5][5]int{}
+
 	for cnt := 1; cnt <= iter; cnt++ {
-		chip := WSOGMM.Value(1, &chips)
+		chip := rng.WSOGMM.Value(1, &chips)
 		bet.Add(chip)
 
 		play := 0
 		for run := 1; run > 0; run-- {
 			play++
 			ans := scr.Play(chip)
+			opens[ans.Open]++
+			chart[ans.Open][ans.Count]++
 			jp := ans.JackPot + ans.Free
 			if ans.Total > 0 {
 				win.Add(ans.Total)
@@ -227,8 +233,30 @@ func DiamondHunt(iter int, chips ...float64) {
 		AddCat("play", float64(play))
 	}
 
-	fmt.Println()
 	play := CatStat["play"]
+
+	for h, o := range opens {
+		fmt.Printf("%-4d  %-4s", h, "")
+		prob := float64(o) / play.Sum
+		fmt.Printf("  %9.5f%%", 100*prob)
+		if prob > 0 {
+			rate := 1 / prob
+			fmt.Printf("  %9.2f", rate)
+		}
+		fmt.Println()
+		for d, c := range chart[h] {
+			fmt.Printf("%-4s  %-4d", "", d)
+			prob := float64(c) / play.Sum
+			fmt.Printf("  %9.5f%%", 100*prob)
+			if prob > 0 {
+				rate := 1 / prob
+				fmt.Printf("  %9.2f", rate)
+			}
+			fmt.Println()
+		}
+	}
+
+	fmt.Println()
 	/*
 		for d, s := range CntStat {
 			prob := float64(s.Cnt) / play.Sum

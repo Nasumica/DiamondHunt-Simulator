@@ -56,43 +56,13 @@ func SpeedTest(n int) {
 	fmt.Printf("%d games,  %.0f swaps,  elapsed = %.3f\",  speed = %.0f deals / s\n", n, swap.Sum, elapsed, speed)
 }
 
-func Chart(runs float64) {
-	axis := [5]float64{}
-	chart := [5][5]float64{}
-	for h := 0; h <= 4; h++ {
-		hprob := HypGeomDist(h, 4, 13, 52)
-		axis[h] = hprob
-		for d := 0; d <= 4; d++ {
-			dprob := HypGeomDist(d, 4, 13-h, 52-4)
-			m := h + d
-			if m > 4 {
-				m = 4
-			}
-			chart[h][m] += dprob
-			// fmt.Printf("%d  %d  %8.5f  %8.5f\n", h, d, 100*hprob, 100*dprob)
-		}
-
-	}
-	for h := 0; h <= 4; h++ {
-		fmt.Println()
-		a := axis[h]
-		x := runs * a
-		for d := 0; d <= 4; d++ {
-			c := chart[h][d]
-			t := a * c
-			y := runs * t
-			fmt.Printf("%d  %d  %9.5f%%  %9.5f%%  %9.5f%%  %10.0f  %10.0f\n", h, d, 100*a, 100*t, 100*c, x, y)
-		}
-	}
-}
-
 func main() {
 	// var scr Screen
 	// for i := 1; i <= 10; i++ {
 	// 	fmt.Println(scr.Play())
 	// }
 	// Chart(35000000)
-	fmt.Println()
-	SpeedTest(10 * 100000)
-	fmt.Println()
+	// fmt.Println()
+	// SpeedTest(10 * 100000)
+	// fmt.Println()
 }
