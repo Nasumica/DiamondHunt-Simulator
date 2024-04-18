@@ -30,7 +30,7 @@ func (card *Card) Reveal() {
 			card.Load = l + 52
 		}
 	} else {
-		card.Face, card.Kind, card.Suit = "", 0, 0
+		card.Face = "★"
 	}
 }
 
@@ -84,6 +84,7 @@ func (deck *Deck) Draw() (card Card) {
 		deck.Rest--
 		deck.Cards[deck.Rest], deck.Cards[n] = deck.Cards[n], deck.Cards[deck.Rest]
 	} else {
+		card.Face = "★"
 		card.Index = -1 // error
 	}
 	return
@@ -108,6 +109,11 @@ func (deck *Deck) Deal(cards int) (deal []Card) {
 func (deck *Deck) NewDeal(cards int) []Card {
 	deck.Reset()
 	return deck.Deal(cards)
+}
+
+// Empty hand.
+func (deck *Deck) Null() (hand []Card) {
+	return
 }
 
 // Croupier with deck of cards.

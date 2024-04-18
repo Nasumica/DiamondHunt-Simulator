@@ -31,13 +31,13 @@ func Diamonds(cards []Card) int {
 type Screen struct {
 	Hand  []Card
 	Diam  []Card
-	Swap  []int
+	Best  []int
 	Open  int
 	Swaps int
 }
 
 // Swap pick best strategy.
-func (scr *Screen) Best() {
+func (scr *Screen) Strategy() {
 	s := []Card{}
 	for _, c := range scr.Hand {
 		if c.Suit == DiamondSuit { // insertion sort
@@ -49,19 +49,19 @@ func (scr *Screen) Best() {
 			s[i] = c
 		}
 	}
-	scr.Swap = []int{}
+	scr.Best = []int{}
 	for _, c := range s {
-		scr.Swap = append(scr.Swap, c.Index)
+		scr.Best = append(scr.Best, c.Index)
 	}
 }
 
 // Base game deal.
 func (scr *Screen) Deal() {
 	scr.Hand = Dealer.NewDeal(4) // 4 cards in hand from new deck
-	scr.Diam = Dealer.Deal(0)    // no cards in diamond yet
-	scr.Best()                   // swap strategy
+	scr.Diam = Dealer.Null()     // no cards in diamond yet
+	scr.Strategy()               // swap strategy
 	scr.Swaps = 0                // reset counter
-	scr.Open = len(scr.Swap)
+	scr.Open = len(scr.Best)
 }
 
 // Draw card in diamond.
@@ -72,28 +72,24 @@ func (scr *Screen) Draw() int {
 	return card.Index
 }
 
-// Hunt for diamond.
-func (scr *Screen) Hunt() (more bool) {
-	i := scr.Draw()
-	d := &scr.Diam[i]
-
-	more = d.Suit == DiamondSuit
-	if !more {
-		more = len(scr.Swap) > 0
-		if more { // swap
-			var j int
-			j, scr.Swap = scr.Swap[0], scr.Swap[1:]
-			h := &scr.Hand[j]
-			h.Index, d.Index = i, j
-			(*h), (*d) = (*d), (*h)
-			scr.Swaps++
-		}
+// Swap cards (if possible).
+func (scr *Screen) Swap(d *Card) (succ bool) {
+	if succ = len(scr.Best) > 0; succ { // swap
+		i := scr.Best[0]              // get swap index
+		scr.Best = scr.Best[1:]       // remove from list
+		h := &scr.Hand[i]             // card from hand
+		h.Index, d.Index = d.Index, i // preserve index
+		(*h), (*d) = (*d), (*h)       // swap
+		scr.Swaps++
 	}
-
-	i++
-	more = more && i < 4
-
 	return
+}
+
+// Hunt for diamond.
+func (scr *Screen) Hunt() bool {
+	i := scr.Draw()   // diamond card index
+	d := &scr.Diam[i] // card from diamond
+	return (d.Suit == DiamondSuit || scr.Swap(d)) && (i < 3)
 }
 
 // Play one hand.
