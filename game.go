@@ -80,11 +80,11 @@ func (scr *Screen) Swap(d *Card) (succ bool) {
 
 		if h.Load > d.Load { // swap
 			h.Index, d.Index = d.Index, h.Index // preserve index
-			(*h), (*d) = (*d), (*h)             // swap
+			(*h), (*d) = (*d), (*h)             // swap cards
 			scr.Best = scr.Best[1:]             // remove from list
 			scr.Swaps++
 			if h.Suit == DiamondSuit { // recalc
-				scr.Strategy()
+				scr.Strategy() // can be improved
 			}
 		}
 	}
