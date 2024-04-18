@@ -13,8 +13,8 @@ type Card struct {
 
 // Reveal card.
 func (card *Card) Reveal() {
-	var kinds = [...]string{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
-	var suits = [...]string{"♠", "♦", "♥", "♣"} // preferans order
+	kinds := [...]string{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
+	suits := [...]string{"♠", "♦", "♥", "♣"} // preferans order
 	if c := card.Card; 1 <= c && c <= 52 {
 		c--
 		k, s := c/4, c%4
