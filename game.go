@@ -104,7 +104,11 @@ func (scr *Screen) Hunt() (more bool) {
 	i := scr.Draw()   // diamond card index
 	d := &scr.Diam[i] // card from diamond
 
-	more = scr.Swap(d)
+	more = d.IsDiam()
+
+	if len(scr.Best) > 0 {
+		more = scr.Swap(d)
+	}
 
 	i++
 	more = more && i < 4

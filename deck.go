@@ -34,6 +34,10 @@ func (card *Card) Reveal() {
 	}
 }
 
+func (card *Card) IsDiam() bool {
+	return card.Suit == 2
+}
+
 func SortCards(c *[]Card) {
 	n := len(*c)
 	var l, r int
