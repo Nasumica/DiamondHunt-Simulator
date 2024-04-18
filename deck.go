@@ -52,6 +52,7 @@ func InitVirtues() {
 	for i := 0; i <= 52; i++ {
 		c := Card{Card: i}
 		c.Reveal()
+		c.Index = i
 		CardVirtues = append(CardVirtues, c)
 	}
 }
