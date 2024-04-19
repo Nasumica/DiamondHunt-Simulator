@@ -321,6 +321,22 @@ func (rnd *LCPRNG) Bernoulli(p float) bool {
 	return (p >= 1) || (p > 0 && p > rnd.Random())
 }
 
+// Rademacher distribution rndom variable {-x, x}.
+//
+//	μ = 0
+//	σ = |x|
+func (rnd *LCPRNG) Rademacher(x float) float {
+	const mask octa = 1 << 61 // prime number bit
+	if x == 0 {
+		return 0
+	}
+	if (rnd.Next() & mask) == 0 { // Bernoulli(0.5)
+		return x
+	} else {
+		return -x
+	}
+}
+
 // Binomial distribution random variable.
 func (rnd *LCPRNG) Binomial(n int, p float) (b int) {
 	if p <= 0 || n <= 0 {
@@ -462,24 +478,19 @@ func (rnd *LCPRNG) ExpNormal(μ, σ, ƛ float) float {
 }
 
 // Laplace distribution random variable.
-func (rnd *LCPRNG) Laplace(μ, b float) (l float) {
-	if b > 0 {
-		l = b * rnd.Exponential()
-		if rnd.Bernoulli(0.5) {
-			l = -l
-		}
+func (rnd *LCPRNG) Laplace(μ, b float) float {
+	if b != 0 {
+		b = rnd.Rademacher(b * rnd.Exponential())
 	}
-	l += μ
-	return
+	return μ + b
 }
 
 // Cauchy distribution random variable.
-func (rnd *LCPRNG) Cauchy(x0, ɣ float) (c float) {
-	if ɣ > 0 {
-		c = ɣ * math.Tan(rnd.Angle()) // due to inexact π: tan(π/2) = 16331239353195392
+func (rnd *LCPRNG) Cauchy(x0, ɣ float) float {
+	if ɣ != 0 {
+		ɣ *= math.Tan(rnd.Angle()) // due to inexact π: tan(π/2) = 16331239353195392
 	}
-	c += x0
-	return
+	return x0 + ɣ
 }
 
 // Tukey distribution random variable.
@@ -494,12 +505,11 @@ func (rnd *LCPRNG) Tukey(ƛ float) float {
 }
 
 // Logistic distribution random variable.
-func (rnd *LCPRNG) Logistic(μ, s float) (l float) {
-	if s > 0 {
-		l = s * rnd.Tukey(0)
+func (rnd *LCPRNG) Logistic(μ, s float) float {
+	if s != 0 {
+		s *= rnd.Tukey(0)
 	}
-	l += μ
-	return
+	return μ + s
 }
 
 // Poisson distribution random variable.
