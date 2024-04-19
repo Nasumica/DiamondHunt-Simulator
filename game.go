@@ -30,14 +30,17 @@ func Diamonds(cards []Card) int {
 
 // Game screen
 type Screen struct {
-	Hand  []Card
-	Diam  []Card
-	Best  []int
-	Open  int
-	Swaps int
-	Desc  string
-	Value int
-	Verb  bool
+	Hand    []Card
+	Diam    []Card
+	Best    []int
+	Open    int
+	Swaps   int
+	Desc    string
+	Verbose bool
+}
+
+func (scr *Screen) History(s string) {
+	scr.Desc += s
 }
 
 // Swap pick best strategy.
@@ -66,7 +69,6 @@ func (scr *Screen) Deal() {
 	scr.Strategy()               // swap strategy
 	scr.Swaps = 0                // reset counter
 	scr.Desc = ""
-	scr.Value = 0
 	scr.Open = len(scr.Best)
 }
 
@@ -80,13 +82,16 @@ func (scr *Screen) Draw() int {
 
 // Hunt for diamond.
 func (scr *Screen) Hunt() (more bool) {
-	const reuse = true
+	const (
+		reuse = true
+		diam  = true
+	)
 
 	i := scr.Draw()   // diamond card index
 	d := &scr.Diam[i] // card from diamond
 
-	if scr.Verb {
-		scr.Desc += "[" + Hand(&scr.Hand) + "][" + Hand(&scr.Diam)
+	if scr.Verbose {
+		scr.History("[" + Hand(&scr.Hand) + "][" + Hand(&scr.Diam))
 	}
 
 	swap := false
@@ -95,8 +100,13 @@ func (scr *Screen) Hunt() (more bool) {
 		h := &scr.Hand[j] // card from hand
 
 		swap = !d.IsDiam()
-		if !swap {
-			swap = h.Load > d.Load
+
+		if diam && !swap {
+			if reuse {
+				swap = h.Load > d.Load
+			} else {
+				swap = h.IsRoyal() && !d.IsRoyal()
+			}
 		}
 
 		if swap { // swap
@@ -107,17 +117,13 @@ func (scr *Screen) Hunt() (more bool) {
 			if reuse && h.IsDiam() {
 				scr.Strategy() // recalc
 			}
-			if scr.Verb {
-				scr.Desc += " = " + d.Face
+			if scr.Verbose {
+				scr.History(" = " + d.Face)
 			}
 		}
 	}
-	if scr.Verb {
-		scr.Desc += "] > "
-	}
-
-	if d.IsDiam() {
-		scr.Value = scr.Value<<4 + d.Kind
+	if scr.Verbose {
+		scr.History("] > ")
 	}
 
 	i++
@@ -165,8 +171,8 @@ func (scr *Screen) Eval(bet float64) (resp HuntResponse) {
 			resp.Value = (resp.Value << 4) + c.Kind // hex
 		}
 	}
-	if scr.Verb {
-		scr.Desc += "[" + Hand(&scr.Hand) + "]" + "[" + Hand(&resp.Hand) + "]"
+	if scr.Verbose {
+		scr.History("[" + Hand(&scr.Hand) + "]" + "[" + Hand(&resp.Hand) + "]")
 	}
 
 	const straight int = 0xbcde // JQKA
@@ -197,11 +203,11 @@ func (scr *Screen) Eval(bet float64) (resp HuntResponse) {
 		}
 	}
 
-	if scr.Verb {
+	if scr.Verbose {
 		if resp.Name != "" {
-			scr.Desc += " " + resp.Name
+			scr.History(" " + resp.Name)
 		} else {
-			scr.Desc += " " + cat
+			scr.History(" " + cat)
 		}
 	}
 
@@ -227,7 +233,7 @@ func AddCat(cat string, x float64) {
 
 func DiamondHunt(iter int, chips ...float64) {
 	var scr Screen
-	//	scr.Verb = true
+	// scr.Verbose = true
 	var bet, win rng.StatCalc
 	bet.Cat, win.Cat = "bet", "win"
 
@@ -271,21 +277,21 @@ func DiamondHunt(iter int, chips ...float64) {
 	play := CatStat["play"]
 
 	for h, o := range opens {
-		fmt.Printf("%-4d  %-4s", h, "")
+		fmt.Printf("%-4d  %-4s  %10d", h, "", o)
 		prob := float64(o) / play.Sum
 		fmt.Printf("  %9.5f%%", 100*prob)
 		if prob > 0 {
 			rate := 1 / prob
-			fmt.Printf("  %9.2f", rate)
+			fmt.Printf("  %27.2f", rate)
 		}
 		fmt.Println()
 		for d, c := range chart[h] {
-			fmt.Printf("%-4s  %-4d", "", d)
+			fmt.Printf("%-4s  %-4d  %10d", "", d, c)
 			prob := float64(c) / play.Sum
 			fmt.Printf("  %9.5f%%", 100*prob)
 			if prob > 0 {
 				rate := 1 / prob
-				fmt.Printf("  %9.2f", rate)
+				fmt.Printf("  %27.2f", rate)
 			}
 			fmt.Println()
 		}
