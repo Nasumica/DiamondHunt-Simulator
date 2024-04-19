@@ -480,7 +480,7 @@ func (rnd *LCPRNG) ExpNormal(μ, σ, ƛ float) float {
 // Laplace distribution random variable.
 func (rnd *LCPRNG) Laplace(μ, b float) float {
 	if b != 0 {
-		b = rnd.Rademacher(b * rnd.Exponential())
+		b *= rnd.Rademacher(rnd.Exponential())
 	}
 	return μ + b
 }
