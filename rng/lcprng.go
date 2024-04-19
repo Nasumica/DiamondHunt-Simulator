@@ -29,14 +29,14 @@ type LCPRNG struct {
 	dog  sync.Mutex // watchdog Šarko
 }
 
-// Current seed.
+// # Current seed.
 func (rnd *LCPRNG) Seed() octa {
 	rnd.dog.Lock()
 	defer rnd.dog.Unlock()
 	return rnd.seed
 }
 
-// Inititalize generator with seeds or system state.
+// # Inititalize generator with seeds or system state.
 func (rnd *LCPRNG) Randomize(seeds ...octa) (seed octa) {
 	xorshift := func(x octa) octa { // by George Marsaglia
 		x ^= x << 13
@@ -60,7 +60,7 @@ func (rnd *LCPRNG) Randomize(seeds ...octa) (seed octa) {
 	return
 }
 
-// Next random value from generator.
+// # Next random value from generator.
 //
 // (Cycle after 584554 years and 18 days for 1 million randoms per second.)
 /*
@@ -82,7 +82,7 @@ func (rnd *LCPRNG) Next() octa {
 	return rnd.seed
 }
 
-// Previous random value from generator.
+// # Previous random value from generator.
 /*
 If
 	y = x * a + c
@@ -110,7 +110,7 @@ func (rnd *LCPRNG) Prev() octa {
 	return rnd.seed
 }
 
-// Next random value from generator limited to range [0, n].
+// # Next random value from generator limited to range [0, n].
 //
 //	μ  = n / 2
 //	σ² = n · (n + 2) / 12
@@ -127,7 +127,7 @@ func (rnd *LCPRNG) Limited(n octa) octa {
 	return n
 }
 
-// Random integer in range [m, n].
+// # Random integer in range [m, n].
 func (rnd *LCPRNG) Int(m, n int) int {
 	if m > n {
 		m, n = n, m
@@ -135,7 +135,7 @@ func (rnd *LCPRNG) Int(m, n int) int {
 	return m + int(rnd.Limited(octa(n-m)))
 }
 
-// Random integer in range [0, n) for positive n, -1 for n = 0, else in range [n, -1].
+// # Random integer in range [0, n) for positive n, -1 for n = 0, else in range [n, -1].
 //
 //	μ  = (n - 1) / 2
 //	σ² = (n² - 1) / 12
@@ -149,19 +149,19 @@ func (rnd *LCPRNG) Choice(n int) int {
 	}
 }
 
-// True with probability k/n.
+// # True with probability k/n.
 func (rnd *LCPRNG) Choose(n, k int) bool {
 	return (n > 0) && (k > 0) && (n <= k || rnd.Choice(n) < k)
 }
 
-// Knuth shuffle (Fisher-Yates).
+// # Knuth shuffle (Fisher-Yates).
 func (rnd *LCPRNG) Shuffle(a *list) {
 	for j, i := 0, len(*a); i > 1; (*a)[i], (*a)[j] = (*a)[j], (*a)[i] {
 		j, i = rnd.Choice(i), i-1
 	}
 }
 
-// List of n integers in range [m, m + n) in random order.
+// # List of n integers in range [m, m + n) in random order.
 func (rnd *LCPRNG) Fill(m, n int) (a list) {
 	if n > 0 {
 		a = make(list, n)
@@ -173,12 +173,12 @@ func (rnd *LCPRNG) Fill(m, n int) (a list) {
 	return
 }
 
-// Random permutation.
+// # Random permutation.
 func (rnd *LCPRNG) Permutation(n int) list {
 	return rnd.Fill(0, n)
 }
 
-// Random combination k of n elements (quickpick).
+// # Random combination k of n elements (quickpick).
 func (rnd *LCPRNG) Combination(n, k int) (c list) {
 	for i := 0; n > 0 && k > 0; i, n = i+1, n-1 {
 		if rnd.Choose(n, k) {
@@ -189,7 +189,7 @@ func (rnd *LCPRNG) Combination(n, k int) (c list) {
 	return
 }
 
-// Random sample of k elements.
+// # Random sample of k elements.
 func (rnd *LCPRNG) Sample(k int, a *list) list {
 	s := rnd.Combination(len(*a), k)
 	for i, j := range s {
@@ -198,7 +198,7 @@ func (rnd *LCPRNG) Sample(k int, a *list) list {
 	return s
 }
 
-// Hypergeometric distribution random variable.
+// # Hypergeometric distribution random variable.
 //
 //	p(hits) = HypGeomDist(hits, draw, succ, size)
 func (rnd *LCPRNG) HyperGeometric(draw, succ, size int) (hits int) {
@@ -222,12 +222,12 @@ func (rnd *LCPRNG) HyperGeometric(draw, succ, size int) (hits int) {
 	return
 }
 
-// Random list index for non-empty list else -1.
+// # Random list index for non-empty list else -1.
 func (rnd *LCPRNG) Index(items *list) int {
 	return rnd.Choice(len(*items))
 }
 
-// Random item from non-empty list else default.
+// # Random item from non-empty list else default.
 func (rnd *LCPRNG) Item(items *list, def int) int {
 	if i := rnd.Index(items); i < 0 {
 		return def
@@ -236,7 +236,7 @@ func (rnd *LCPRNG) Item(items *list, def int) int {
 	}
 }
 
-// Random value from non-empty array else default.
+// # Random value from non-empty array else default.
 func (rnd *LCPRNG) Value(values *array, def float) float {
 	if n := rnd.Choice(len(*values)); n < 0 {
 		return def
@@ -245,11 +245,14 @@ func (rnd *LCPRNG) Value(values *array, def float) float {
 	}
 }
 
-// From precalculated cumulative mass function table c,
-// calculate loaded uniform (weighted) random integer in range [0, len(c)).
-//
-// The sequence must be non-negative, non-decreasing.
-// The last element of the sequence must be greater than 0.
+// # Loaded uniform random integer.
+/*
+From precalculated cumulative mass function table c,
+calculate loaded uniform (weighted) random integer in range [0, len(c)).
+
+The sequence must be non-negative, non-decreasing.
+The last element of the sequence must be greater than 0.
+*/
 func (rnd *LCPRNG) Loaded(c *list) int {
 	r := len(*c) - 1
 	if r > 0 { // data present and not single
@@ -266,7 +269,7 @@ func (rnd *LCPRNG) Loaded(c *list) int {
 	return r
 }
 
-// Weighted-uniform random variable.
+// # Weighted-uniform random integer.
 //
 //	ProbabilityUp[i] = w[i]
 //	ProbabolityDown  = ∑ w
@@ -287,7 +290,7 @@ func (rnd *LCPRNG) Weighted(w *list) int {
 	}
 }
 
-// Uniform random number in range (0, 1).
+// # Uniform random number in range (0, 1).
 func (rnd *LCPRNG) Random() float {
 	var n octa
 	for n == 0 {
@@ -297,13 +300,13 @@ func (rnd *LCPRNG) Random() float {
 	return ε * float(n)
 }
 
-// Random angle (0, 2π).
+// # Random angle (0, 2π).
 func (rnd *LCPRNG) Angle() float {
 	const τ float = 2 * math.Pi // τ = 2π = 0x3243F6A8885A3p-47
 	return τ * rnd.Random()
 }
 
-// Uniform random number in range (0, x).
+// # Uniform random number in range (0, x).
 func (rnd *LCPRNG) Uniform(x float) float {
 	if x != 0 {
 		x *= rnd.Random()
@@ -311,17 +314,17 @@ func (rnd *LCPRNG) Uniform(x float) float {
 	return x
 }
 
-// Uniform random number in range (a, b).
+// # Uniform random number in range (a, b).
 func (rnd *LCPRNG) Range(a, b float) float {
 	return a + rnd.Uniform(b-a)
 }
 
-// True with probability p.
+// # True with probability p.
 func (rnd *LCPRNG) Bernoulli(p float) bool {
 	return (p >= 1) || (p > 0 && p > rnd.Random())
 }
 
-// Rademacher distribution random variable {-x, x}.
+// # Rademacher distribution random variable {-x or x}.
 //
 //	μ = 0
 //	σ = |x|
@@ -337,7 +340,7 @@ func (rnd *LCPRNG) Rademacher(x float) float {
 	}
 }
 
-// Binomial distribution random variable.
+// # Binomial distribution random variable.
 func (rnd *LCPRNG) Binomial(n int, p float) (b int) {
 	if p <= 0 || n <= 0 {
 		return 0
@@ -363,7 +366,7 @@ func (rnd *LCPRNG) Binomial(n int, p float) (b int) {
 	return
 }
 
-// Exponential distribution random variable.
+// # Exponential distribution random variable.
 func (rnd *LCPRNG) Exponential(ƛ ...float) float {
 	e := -math.Log1p(-rnd.Random()) // domain = [0, 36.7368]
 	if len(ƛ) > 0 {
@@ -372,7 +375,7 @@ func (rnd *LCPRNG) Exponential(ƛ ...float) float {
 	return e
 }
 
-// Pascal (negative binomial) distribution random variable.
+// # Pascal (negative binomial) distribution random variable.
 func (rnd *LCPRNG) Pascal(r int, p float) (n float) {
 	if r <= 0 || p <= 0 {
 		n = math.Inf(1)
@@ -384,14 +387,14 @@ func (rnd *LCPRNG) Pascal(r int, p float) (n float) {
 	return
 }
 
-// Geometric distribution random variable.
+// # Geometric distribution random variable.
 //
 //	p(n) = p · (1 - p)ⁿ
 func (rnd *LCPRNG) Geometric(p float) float {
 	return rnd.Pascal(1, p)
 }
 
-// Rayleigh distribution random variable.
+// # Rayleigh distribution random variable.
 func (rnd *LCPRNG) Rayleigh(σ float) float {
 	if σ != 0 {
 		σ *= math.Sqrt(2 * rnd.Exponential()) // Box-Muller transform
@@ -399,7 +402,7 @@ func (rnd *LCPRNG) Rayleigh(σ float) float {
 	return σ
 }
 
-// Arcus distribution random variable (-1, 1).
+// # Arcus distribution random variable (-1, 1).
 //
 //	μ  = 0
 //	σ² = 1/2
@@ -407,7 +410,7 @@ func (rnd *LCPRNG) Arcus() float {
 	return math.Sin(rnd.Angle())
 }
 
-// ArcSine distribution random variable (0, 1).
+// # ArcSine distribution random variable (0, 1).
 //
 //	μ  = 1/2
 //	σ² = 1/8
@@ -415,7 +418,7 @@ func (rnd *LCPRNG) ArcSine() float {
 	return (rnd.Arcus() + 1) / 2
 }
 
-// Gauss distribution random variable.
+// # Gauss distribution random variable.
 //
 //	μ = 0
 //	σ = 1
@@ -423,7 +426,7 @@ func (rnd *LCPRNG) Gauss() float {
 	return rnd.Rayleigh(rnd.Arcus()) // domain = [±8.57167]
 }
 
-// Normal distribution random variable.
+// # Normal distribution random variable.
 func (rnd *LCPRNG) Normal(μ, σ float) float {
 	if σ != 0 {
 		σ *= rnd.Gauss()
@@ -431,12 +434,12 @@ func (rnd *LCPRNG) Normal(μ, σ float) float {
 	return μ + σ
 }
 
-// Discrete normal distribution random variable.
+// # Discrete normal distribution random variable.
 func (rnd *LCPRNG) Discrete(μ, σ float) int {
 	return int(math.Round(rnd.Normal(μ, σ)))
 }
 
-// Skew-normal distribution random variable.
+// # Skew-normal distribution random variable.
 func (rnd *LCPRNG) SkewNormal(ξ, ω, ɑ float) (s float) {
 	const limit = 1024
 	if ω != 0 {
@@ -467,17 +470,17 @@ func (rnd *LCPRNG) SkewNormal(ξ, ω, ɑ float) (s float) {
 	return
 }
 
-// Log-normal distribution random variable.
+// # Log-normal distribution random variable.
 func (rnd *LCPRNG) LogNormal(μ, σ float) float {
 	return math.Exp(rnd.Normal(μ, σ))
 }
 
-// Exponentially modified normal distribution random variable.
+// # Exponentially modified normal distribution random variable.
 func (rnd *LCPRNG) ExpNormal(μ, σ, ƛ float) float {
 	return rnd.Normal(μ, σ) + rnd.Exponential(ƛ)
 }
 
-// Laplace distribution random variable.
+// # Laplace distribution random variable.
 func (rnd *LCPRNG) Laplace(μ, b float) float {
 	if b != 0 {
 		b *= rnd.Rademacher(rnd.Exponential())
@@ -485,7 +488,7 @@ func (rnd *LCPRNG) Laplace(μ, b float) float {
 	return μ + b
 }
 
-// Cauchy distribution random variable.
+// # Cauchy distribution random variable.
 func (rnd *LCPRNG) Cauchy(x0, ɣ float) float {
 	if ɣ != 0 {
 		ɣ *= math.Tan(rnd.Angle()) // due to inexact π: tan(π/2) = 16331239353195392
@@ -493,7 +496,7 @@ func (rnd *LCPRNG) Cauchy(x0, ɣ float) float {
 	return x0 + ɣ
 }
 
-// Tukey distribution random variable.
+// # Tukey distribution random variable.
 func (rnd *LCPRNG) Tukey(ƛ float) float {
 	p := rnd.Random()
 	q := 1 - p
@@ -504,7 +507,7 @@ func (rnd *LCPRNG) Tukey(ƛ float) float {
 	}
 }
 
-// Logistic distribution random variable.
+// # Logistic distribution random variable.
 func (rnd *LCPRNG) Logistic(μ, s float) float {
 	if s != 0 {
 		s *= rnd.Tukey(0)
@@ -512,10 +515,9 @@ func (rnd *LCPRNG) Logistic(μ, s float) float {
 	return μ + s
 }
 
-// Poisson distribution random variable.
+// # Poisson distribution random variable.
 //
 //	μ = σ² = ƛ
-//
 //	p(n) = exp(-ƛ) ✶ ƛⁿ / n!
 func (rnd *LCPRNG) Poisson(ƛ float) (n int) {
 	const limit = 256
@@ -534,7 +536,7 @@ func (rnd *LCPRNG) Poisson(ƛ float) (n int) {
 	return
 }
 
-// Skellam distribution random variable.
+// # Skellam distribution random variable.
 //
 //	μ  = μ₁ - μ₂
 //	σ² = μ₁ + μ₂
@@ -545,7 +547,7 @@ func (rnd *LCPRNG) Skellam(μ1, μ2 float) (n int) {
 	return
 }
 
-// Hermite distribution random variable.
+// # Hermite distribution random variable.
 //
 //	μ  = ɑ₁ + 2ɑ₂
 //	σ² = ɑ₁ + 4ɑ₂
@@ -556,14 +558,15 @@ func (rnd *LCPRNG) Hermite(ɑ1, ɑ2 float) (n int) {
 	return
 }
 
-// χ² distribution random variable with k degrees of freedom.
+// # χ² distribution random variable with k degrees of freedom.
 //
 // Sum of k squared Gauss randoms.
 //
 //	μ  = k
 //	σ² = 2 k
-func (rnd *LCPRNG) ChiSquared(k int) (x float) {
+func (rnd *LCPRNG) ChiSquared(k int) float {
 	const limit = 256
+	var x float
 	if k < limit {
 		if k > 1 {
 			for x = 1; k > 1; k -= 2 {
@@ -578,10 +581,10 @@ func (rnd *LCPRNG) ChiSquared(k int) (x float) {
 		x = float(k)
 		x = rnd.Normal(x, math.Sqrt(2*x))
 	}
-	return
+	return x
 }
 
-// χ distribution random variable with k degrees of freedom.
+// # χ distribution random variable with k degrees of freedom.
 //
 // Length of k-dimensional vector with Gauss random coordinates.
 func (rnd *LCPRNG) Chi(k int) (x float) {
@@ -596,12 +599,12 @@ func (rnd *LCPRNG) Chi(k int) (x float) {
 	return
 }
 
-// Erlang distribution random variable.
+// # Erlang distribution random variable.
 func (rnd *LCPRNG) Erlang(k int, ƛ float) float {
 	return rnd.ChiSquared(2*k) / (2 * ƛ)
 }
 
-// Γ distribution random variable.
+// # Γ distribution random variable.
 //
 // Sum of α Exponential(β) randoms.
 //
@@ -631,7 +634,7 @@ func (rnd *LCPRNG) Gamma(ɑ float, β ...float) (g float) {
 	return
 }
 
-// Β distribution random variable.
+// # Β distribution random variable.
 func (rnd *LCPRNG) Beta(ɑ, β float) (b float) {
 	if ɑ > 0 && β > 0 {
 		switch { // some special cases
@@ -653,7 +656,7 @@ func (rnd *LCPRNG) Beta(ɑ, β float) (b float) {
 	return
 }
 
-// Β' distribution random variable.
+// # Β' distribution random variable.
 //
 //	Γ(α) / Γ(β) = Γ(α, Γ(β))
 func (rnd *LCPRNG) BetaPrime(ɑ, β float) (b float) {
@@ -664,7 +667,7 @@ func (rnd *LCPRNG) BetaPrime(ɑ, β float) (b float) {
 	return
 }
 
-// Student's t-distribution random variable with ν degrees of freedom.
+// # Student's t-distribution random variable with ν degrees of freedom.
 //
 // Normal distribution with
 //
@@ -685,7 +688,7 @@ func (rnd *LCPRNG) StudentsT(ν float) (t float) {
 	return
 }
 
-// Snedecor's F-distribution random variable.
+// # Snedecor's F-distribution random variable.
 //
 //	(χ²(d₁) / d₁) / (χ²(d₂) / d₂)
 func (rnd *LCPRNG) SnedecorsF(d1, d2 float) (f float) {
@@ -695,7 +698,7 @@ func (rnd *LCPRNG) SnedecorsF(d1, d2 float) (f float) {
 	return
 }
 
-// Dirichlet distribution random array which sum is equal to 1.
+// # Dirichlet distribution random array which sum is equal to 1.
 //
 // Weighted random cuts.
 //
@@ -727,21 +730,22 @@ func (rnd *LCPRNG) Dirichlet(ɑ ...float) (d array) {
 	return
 }
 
-// Maxwell–Boltzmann distribution random variable (3 degrees of freedom).
-//
-// Random speed of particle (m/s) in 3D space where
-//
-//	M = molar mass (g/mol)
-//	T = temperature (°C)
-//
-// For example, use
-//
-//	Maxwellian(32, 25)
-//
-// for
-//
-//	M (oxygen molecule O₂) = 16 · 2 = 32 g/mol
-//	T (room temperature) = 25°C
+// # Maxwell–Boltzmann distribution random variable (3 degrees of freedom).
+/*
+Random speed of particle (m/s) in 3D space where
+
+	M = molar mass (g/mol)
+	T = temperature (°C)
+
+For example, use
+
+	Maxwellian(32, 25)
+
+for
+
+	M (oxygen molecule O₂) = 16 · 2 = 32 g/mol
+	T (room temperature) = 25°C
+*/
 func (rnd *LCPRNG) Maxwellian(M, T float) (v float) {
 	const (
 		O = -273.15       // Absolute zero (°C)
@@ -764,7 +768,7 @@ func (rnd *LCPRNG) Maxwellian(M, T float) (v float) {
 	return
 }
 
-// Inverse Gausian distribution random variable.
+// # Inverse Gausian distribution random variable.
 func (rnd *LCPRNG) Wald(μ, ƛ float) (w float) {
 	if μ > 0 && ƛ > 0 {
 		ƛ *= 2
@@ -778,7 +782,7 @@ func (rnd *LCPRNG) Wald(μ, ƛ float) (w float) {
 	return
 }
 
-// Pareto  distribution random variable.
+// # Pareto  distribution random variable.
 func (rnd *LCPRNG) Pareto(xm, ɑ float) (p float) {
 	if xm > 0 && ɑ > 0 {
 		p = xm * math.Exp(rnd.Exponential(ɑ))
@@ -786,12 +790,12 @@ func (rnd *LCPRNG) Pareto(xm, ɑ float) (p float) {
 	return
 }
 
-// Lomax  distribution random variable.
+// # Lomax  distribution random variable.
 func (rnd *LCPRNG) Lomax(ɑ, ƛ float) float {
 	return rnd.Pareto(ƛ, ɑ) - ƛ
 }
 
-// Weibull  distribution random variable.
+// # Weibull  distribution random variable.
 func (rnd *LCPRNG) Weibull(ƛ, k float) (w float) {
 	if ƛ > 0 && k > 0 {
 		w = ƛ * math.Pow(rnd.Exponential(), 1/k)
@@ -799,7 +803,7 @@ func (rnd *LCPRNG) Weibull(ƛ, k float) (w float) {
 	return
 }
 
-// Logarithmic-uniform random variable.
+// # Logarithmic-uniform random variable.
 func (rnd *LCPRNG) Logarithmic(a, b float) (l float) {
 	if a > b {
 		a, b = b, a
@@ -819,7 +823,7 @@ func (rnd *LCPRNG) Logarithmic(a, b float) (l float) {
 	return
 }
 
-// Benford law random integer in range [m, n] for positive arguments.
+// # Benford law random integer in range [m, n].
 func (rnd *LCPRNG) Benford(m, n int) (b int) {
 	if m > n {
 		m, n = n, m
@@ -839,7 +843,7 @@ func (rnd *LCPRNG) Benford(m, n int) (b int) {
 	return
 }
 
-// Irwin-Hall distribution random variable.
+// # Irwin-Hall distribution random variable.
 func (rnd *LCPRNG) IrwinHall(x float) (h float) {
 	if x > 0 {
 		const limit = 64
@@ -856,7 +860,7 @@ func (rnd *LCPRNG) IrwinHall(x float) (h float) {
 	return
 }
 
-// Bates distribution random variable.
+// # Bates distribution random variable.
 func (rnd *LCPRNG) Bates(x, a, b float) (c float) {
 	if x > 0 {
 		c = (b - a) * rnd.IrwinHall(x) / x
@@ -865,7 +869,7 @@ func (rnd *LCPRNG) Bates(x, a, b float) (c float) {
 	return
 }
 
-// Triangulat distribution random variable.
+// # Triangulat distribution random variable.
 func (rnd *LCPRNG) Triangular(a, b, mode float) (t float) {
 	if a > b {
 		a, b = b, a
@@ -881,7 +885,7 @@ func (rnd *LCPRNG) Triangular(a, b, mode float) (t float) {
 	return
 }
 
-// Sort list with random pivot.
+// # Sort list with random pivot.
 func (rnd *LCPRNG) Sort(x *list) {
 	const treshold = 16 // algorithm selection treshold
 
@@ -938,9 +942,13 @@ func (rnd *LCPRNG) Sort(x *list) {
 	}
 }
 
-// Weighted-uniform random variation k of n elements
-// where weights = tuning, n = len(tuning) and k = podium,
-// calculated by race simulation standing list.
+// # Weighted-uniform random variation k of n elements.
+//
+//	w = tuning
+//	n = len(tuning)
+//	k = podium
+//
+// Calculated by race simulation standing list.
 func (rnd *LCPRNG) Podium(podium int, tuning *list) (stand list) { // not optimised, tested
 	cars := len(*tuning) // number of cars
 
@@ -1042,12 +1050,12 @@ func (rnd *LCPRNG) Podium(podium int, tuning *list) (stand list) { // not optimi
 	return
 }
 
-// Weighted random permutation.
+// # Weighted random permutation.
 func (rnd *LCPRNG) Race(tuning *list) list {
 	return rnd.Podium(len(*tuning), tuning)
 }
 
-// Random forest.
+// # Random forest.
 //
 // Random string of nested parenthesis.
 //
@@ -1065,14 +1073,14 @@ func (rnd *LCPRNG) Forest(n int) (f string) {
 	return
 }
 
-// Cut deck of cards.
+// # Cut deck of cards.
 func (rnd *LCPRNG) CutDeck(deck *list) (l, r list) {
 	c := rnd.Binomial(len(*deck), 0.5)
 	l, r = append(l, (*deck)[:c]...), append(r, (*deck)[c:]...)
 	return
 }
 
-// Interleave cards from left and right hand.
+// # Interleave cards from left and right hand.
 //
 // Gilbert-Shannon-Reeds model.
 func (rnd *LCPRNG) DoveTail(l, r *list) (d list) {
@@ -1093,7 +1101,7 @@ func (rnd *LCPRNG) DoveTail(l, r *list) (d list) {
 	return
 }
 
-// Riffle shuffle deck of cards.
+// # Riffle shuffle deck of cards.
 func (rnd *LCPRNG) RiffleShuffle(deck *list) {
 	if n := len(*deck); n > 1 {
 		// by Bayer & Diaconis (n = 8 for standard deck)
@@ -1104,7 +1112,7 @@ func (rnd *LCPRNG) RiffleShuffle(deck *list) {
 	}
 }
 
-// List of n random integers which sum is equal to s.
+// # List of n random integers which sum is equal to s.
 //
 //	μ = s / n
 //	σ = sqrt(s ✶ (n - 1)) / n
@@ -1139,7 +1147,7 @@ func (rnd *LCPRNG) Scatter(s, n int) (d list) {
 	return
 }
 
-// Random point on circle of radius r.
+// # Random point on circle of radius r.
 func (rnd *LCPRNG) Circle(r float) (x, y float) {
 	if r != 0 {
 		y, x = math.Sincos(rnd.Angle())
@@ -1148,17 +1156,17 @@ func (rnd *LCPRNG) Circle(r float) (x, y float) {
 	return
 }
 
-// Uniform random point in disc of radius r.
+// # Uniform random point in disc of radius r.
 func (rnd *LCPRNG) Disc(r float) (x, y float) {
 	return rnd.Circle(r * math.Sqrt(rnd.Random()))
 }
 
-// Shooting on target bullet dispersion.
+// # Shooting on target bullet dispersion.
 func (rnd *LCPRNG) Target(dispersion float) (x, y float) {
 	return rnd.Circle(rnd.Rayleigh(dispersion))
 }
 
-// Color pixel random dither.
+// # Color pixel random dither.
 func (rnd *LCPRNG) Dither(r, g, b byte) bool {
 	const ( // CIELAB white-point
 		x = 0.212671232040624
@@ -1169,7 +1177,7 @@ func (rnd *LCPRNG) Dither(r, g, b byte) bool {
 	return rnd.Bernoulli(gray / 255)
 }
 
-// House edge random variable for given return-to-player.
+// # House edge random variable for given return-to-player.
 //
 //	μ = 1 - rtp
 //	σ = rtp
@@ -1181,7 +1189,7 @@ func (rnd *LCPRNG) Edge(rtp float) float {
 	}
 }
 
-// 3 dice roll.
+// # 3 dice roll.
 //
 // Returns random dice roll (111-666), virtue (1-56) and frequency (1, 3, 6).
 //
@@ -1205,7 +1213,7 @@ func (rnd *LCPRNG) SicBo() (dice list, virtue, freq int) {
 	return
 }
 
-// Slot reels stop positions and grid.
+// # Slot reels stop positions and grid.
 func (rnd *LCPRNG) Slot(reels *grid, height ...int) (stop list, grid grid) {
 	l := len(height)
 	for i, r := range *reels {
@@ -1224,32 +1232,32 @@ func (rnd *LCPRNG) Slot(reels *grid, height ...int) (stop list, grid grid) {
 	return
 }
 
-// Balls mixer.
+// # Balls mixer.
 func (rnd *LCPRNG) Mixer(balls int) list {
 	return rnd.Fill(1, balls)
 }
 
-// Standard deck of 52 cards.
+// # Standard deck of 52 cards.
 func (rnd *LCPRNG) Deck() list {
 	return rnd.Mixer(52)
 }
 
-// Tombola mixer.
+// # Tombola mixer.
 func (rnd *LCPRNG) Tombola() list {
 	return rnd.Mixer(90)
 }
 
-// Bingo mixer.
+// # Bingo mixer.
 func (rnd *LCPRNG) Bingo() list {
 	return rnd.Mixer(75)
 }
 
-// Keno mixer.
+// # Keno mixer.
 func (rnd *LCPRNG) Keno() list {
 	return rnd.Mixer(80)
 }
 
-// Lucky 6 mixer.
+// # Lucky 6 mixer.
 func (rnd *LCPRNG) Lucky6() list {
 	return rnd.Mixer(49)
 }
