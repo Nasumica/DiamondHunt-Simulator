@@ -549,6 +549,9 @@ func (rnd *LCPRNG) Hermite(ɑ1, ɑ2 float) (n int) {
 // χ² distribution random variable with k degrees of freedom.
 //
 // Sum of k squared Gauss randoms.
+//
+//	μ  = k
+//	σ² = 2 k
 func (rnd *LCPRNG) ChiSquared(k int) (x float) {
 	const limit = 256
 	if k < limit {

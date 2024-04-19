@@ -56,6 +56,15 @@ func SortCards(c *[]Card) {
 	}
 }
 
+func Hand(cards *[]Card) (hand string) {
+	d := ""
+	for _, c := range *cards {
+		hand += d + c.Face
+		d = " "
+	}
+	return
+}
+
 var CardVirtues []Card
 
 func InitVirtues() {
