@@ -35,12 +35,12 @@ type Screen struct {
 	Best    []int
 	Open    int
 	Swaps   int
-	Desc    string
+	Flow    string
 	Verbose bool
 }
 
 func (scr *Screen) History(s string) {
-	scr.Desc += s
+	scr.Flow += s
 }
 
 // Swap pick best strategy.
@@ -68,7 +68,7 @@ func (scr *Screen) Deal() {
 	scr.Diam = Dealer.Null()     // no cards in diamond yet
 	scr.Strategy()               // swap strategy
 	scr.Swaps = 0                // reset counter
-	scr.Desc = ""
+	scr.Flow = ""
 	scr.Open = len(scr.Best)
 }
 
@@ -155,6 +155,7 @@ type HuntResponse struct {
 	Free     float64 // number of free spins
 	Swaps    int
 	Open     int
+	FLow     string
 }
 
 // Evaluate hand.
@@ -209,6 +210,7 @@ func (scr *Screen) Eval(bet float64) (resp HuntResponse) {
 		} else {
 			scr.History(" " + cat)
 		}
+		resp.FLow = scr.Flow
 	}
 
 	resp.Win *= bet
@@ -233,7 +235,7 @@ func AddCat(cat string, x float64) {
 
 func DiamondHunt(iter int, chips ...float64) {
 	var scr Screen
-	// scr.Verbose = true
+	scr.Verbose = true
 	var bet, win rng.StatCalc
 	bet.Cat, win.Cat = "bet", "win"
 
