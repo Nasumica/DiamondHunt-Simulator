@@ -321,7 +321,7 @@ func (rnd *LCPRNG) Bernoulli(p float) bool {
 	return (p >= 1) || (p > 0 && p > rnd.Random())
 }
 
-// Rademacher distribution rndom variable {-x, x}.
+// Rademacher distribution random variable {-x, x}.
 //
 //	μ = 0
 //	σ = |x|
