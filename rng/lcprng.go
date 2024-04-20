@@ -1380,6 +1380,10 @@ func Ludus(sides int, dice ...int) (total, index int, prob float) {
 
 // # Calculate n digits of π.
 func SpigotPi(n int) (π []byte) {
+	if n <= 0 {
+		return
+	}
+
 	b, h := (n*10+2)/3, 0
 	m := make([]int, b)
 	for i := range m {
@@ -1387,6 +1391,7 @@ func SpigotPi(n int) (π []byte) {
 	}
 
 	π = make([]byte, n)
+
 	for i := range π {
 		s, c := 0, 0
 		for j := b - 1; j >= 0; j-- {
@@ -1397,18 +1402,14 @@ func SpigotPi(n int) (π []byte) {
 		m[0] = s % 10
 
 		d := byte(s / 10)
-		switch d {
-		case 9:
-			h++
-		case 10:
-			d = 0
-			for k := 1; k <= h; k++ {
-				j := i - k
-				π[j] = (π[j] + 1) % 10
+		if d != 9 {
+			if d == 10 {
+				d = 0
+				for j := h; j < i; j++ {
+					π[j] = (π[j] + 1) % 10
+				}
 			}
-			h = 1
-		default:
-			h = 1
+			h = i
 		}
 
 		π[i] = d
