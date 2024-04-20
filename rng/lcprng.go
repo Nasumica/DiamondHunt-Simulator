@@ -1380,39 +1380,38 @@ func Ludus(sides int, dice ...int) (total, index int, prob float) {
 
 // # Calculate n digits of π.
 func SpigotPi(n int) (π []byte) {
-	hold, boxes := 0, n*10/3
-	mods := make([]int, boxes)
-	for i := range mods {
-		mods[i] = 2
+	b, h := (n*10+2)/3, 0
+	m := make([]int, b)
+	for i := range m {
+		m[i] = 2
 	}
 
-	for i := 0; i < n; i++ {
-		sum, carry, quot := 0, 0, 0
-		for j := boxes - 1; j >= 0; j-- {
+	π = make([]byte, n)
+	for i := range π {
+		s, c := 0, 0
+		for j := b - 1; j >= 0; j-- {
 			k := 2*j + 1
-			mods[j] *= 10
-			sum = mods[j] + carry
-			quot, mods[j] = sum/k, sum%k
-			carry = quot * j
+			s = 10*m[j] + c
+			c, m[j] = s/k*j, s%k
 		}
-		mods[0] = sum % 10
+		m[0] = s % 10
 
-		digit := byte(sum / 10)
-		switch digit {
+		d := byte(s / 10)
+		switch d {
 		case 9:
-			hold++
+			h++
 		case 10:
-			digit = 0
-			for k := 1; k <= hold; k++ {
+			d = 0
+			for k := 1; k <= h; k++ {
 				j := i - k
 				π[j] = (π[j] + 1) % 10
 			}
-			hold = 1
+			h = 1
 		default:
-			hold = 1
+			h = 1
 		}
 
-		π = append(π, digit)
+		π[i] = d
 	}
 
 	return
