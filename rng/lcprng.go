@@ -329,8 +329,7 @@ func (rnd *LCPRNG) Bernoulli(p float) bool {
 //	μ = 0
 //	σ = |x|
 func (rnd *LCPRNG) Rademacher(x float) float {
-	const mask octa = 1 << 61 // prime number bit
-	if (x != 0) && (rnd.Next()&mask) == 0 {
+	if x != 0 && rnd.Bernoulli(0.5) {
 		x = -x
 	}
 	return x
