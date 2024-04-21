@@ -1403,8 +1403,8 @@ func SpigotPi(n int) (π []byte) {
 
 		d := byte(s / 10)
 		if d != 9 {
-			if d == 10 {
-				d = 0
+			if d > 9 {
+				d -= 10
 				for j := h; j < i; j++ {
 					π[j] = (π[j] + 1) % 10
 				}
