@@ -1116,7 +1116,7 @@ func (rnd *LCPRNG) RiffleShuffle(deck *list) {
 // # List of n random integers which sum is equal to s.
 //
 //	μ  = s / n
-//	σ² = s ✶ (n - 1) / n²
+//	σ² = μ ✶ (1 - 1 / n)
 //
 // Deli špil od s karata na n približno jednakih delova.
 //
