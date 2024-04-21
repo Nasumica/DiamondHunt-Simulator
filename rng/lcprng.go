@@ -330,14 +330,10 @@ func (rnd *LCPRNG) Bernoulli(p float) bool {
 //	σ = |x|
 func (rnd *LCPRNG) Rademacher(x float) float {
 	const mask octa = 1 << 61 // prime number bit
-	if x == 0 {
-		return 0
+	if (x != 0) && (rnd.Next()&mask) == 0 {
+		x = -x
 	}
-	if (rnd.Next() & mask) == 0 { // Bernoulli(0.5)
-		return x
-	} else {
-		return -x
-	}
+	return x
 }
 
 // # Binomial distribution random variable.
