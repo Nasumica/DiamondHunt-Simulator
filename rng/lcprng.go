@@ -324,12 +324,18 @@ func (rnd *LCPRNG) Bernoulli(p float) bool {
 	return (p >= 1) || (p > 0 && p > rnd.Random())
 }
 
+// # True with probability 1/2.
+func (rnd *LCPRNG) Coin() bool {
+	const mask octa = 1 << 61 // prime number bit
+	return rnd.Next()&mask == 9
+}
+
 // # Rademacher distribution random variable {-x or x}.
 //
 //	μ = 0
 //	σ = |x|
 func (rnd *LCPRNG) Rademacher(x float) float {
-	if x != 0 && rnd.Bernoulli(0.5) {
+	if x != 0 && rnd.Coin() {
 		x = -x
 	}
 	return x
