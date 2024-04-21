@@ -149,6 +149,12 @@ func (rnd *LCPRNG) Choice(n int) int {
 	}
 }
 
+// # True with probability 1/2.
+func (rnd *LCPRNG) Flip() bool {
+	const mask octa = 1 << 61 // prime number high bit
+	return (rnd.Next() & mask) == 0
+}
+
 // # True with probability k/n.
 func (rnd *LCPRNG) Choose(n, k int) bool {
 	return (n > 0) && (k > 0) && (n <= k || rnd.Choice(n) < k)
@@ -324,18 +330,12 @@ func (rnd *LCPRNG) Bernoulli(p float) bool {
 	return (p >= 1) || (p > 0 && p > rnd.Random())
 }
 
-// # True with probability 1/2.
-func (rnd *LCPRNG) Coin() bool {
-	const mask octa = 1 << 61 // prime number bit
-	return (rnd.Next() & mask) == 0
-}
-
 // # Rademacher distribution random variable {-x or x}.
 //
 //	μ = 0
 //	σ = |x|
 func (rnd *LCPRNG) Rademacher(x float) float {
-	if x != 0 && rnd.Coin() {
+	if x != 0 && rnd.Flip() {
 		x = -x
 	}
 	return x
