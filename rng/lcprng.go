@@ -327,7 +327,7 @@ func (rnd *LCPRNG) Bernoulli(p float) bool {
 // # True with probability 1/2.
 func (rnd *LCPRNG) Coin() bool {
 	const mask octa = 1 << 61 // prime number bit
-	return rnd.Next()&mask == 9
+	return (rnd.Next() & mask) == 0
 }
 
 // # Rademacher distribution random variable {-x or x}.
