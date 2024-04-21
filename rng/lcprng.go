@@ -332,6 +332,8 @@ func (rnd *LCPRNG) Bernoulli(p float) bool {
 
 // # Rademacher distribution random variable {-x or x}.
 //
+// Random number sign.
+//
 //	μ = 0
 //	σ = |x|
 func (rnd *LCPRNG) Rademacher(x float) float {
