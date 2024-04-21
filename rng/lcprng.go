@@ -1164,7 +1164,7 @@ func (rnd *LCPRNG) Disc(r float) (x, y float) {
 	return rnd.Circle(r * math.Sqrt(rnd.Random()))
 }
 
-// # Shooting on target bullet dispersion.
+// # Shooting on target bullet position.
 func (rnd *LCPRNG) Target(dispersion float) (x, y float) {
 	return rnd.Circle(rnd.Rayleigh(dispersion))
 }
