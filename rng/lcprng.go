@@ -332,10 +332,10 @@ func (rnd *LCPRNG) Bernoulli(p float) bool {
 
 // # Rademacher distribution random variable {-x or x}.
 //
-// Random number sign.
+// Random sign of number.
 //
 //	μ = 0
-//	σ = |x|
+//	σ = x
 func (rnd *LCPRNG) Rademacher(x float) float {
 	if x != 0 && rnd.Flip() {
 		x = -x
