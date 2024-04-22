@@ -1267,7 +1267,7 @@ func (rnd *LCPRNG) Lucky6() list {
 	return rnd.Mixer(49)
 }
 
-// 2-adic multiplicative inverse for odd o else 0.
+// # 2-adic multiplicative inverse.
 //
 //	o ✶ r = 1 (mod 2⁶⁴)
 //
@@ -1278,7 +1278,7 @@ func MulInv64(o octa) (r octa) {
 	if o != 0 {
 		o /= -o & o // trim right zeroes
 		for m, b := octa(0), octa(1); b != 0; b <<= 1 {
-			if m |= b; o*r&m != 1 {
+			if m |= b; (o * r & m) != 1 {
 				r |= b
 			}
 		}
@@ -1286,12 +1286,16 @@ func MulInv64(o octa) (r octa) {
 	return
 }
 
-// n!
+// # Facorial.
+//
+//	n!
 func Factorial(n int) float {
 	return math.Gamma(float(n + 1))
 }
 
-// n! / (n - k)!
+// # Falling factorial.
+//
+//	n! / (n - k)!
 func FallFact(n, k int) (f float) {
 	if n < 0 || k <= n {
 		for f = 1; k > 0; n, k = n-1, k-1 {
@@ -1301,7 +1305,7 @@ func FallFact(n, k int) (f float) {
 	return
 }
 
-// Binomial coefficient.
+// # Binomial coefficient.
 //
 //	n! / (n - k)! / k!
 func Binomial(n, k int) (b float) {
@@ -1330,7 +1334,7 @@ func Binomial(n, k int) (b float) {
 	return
 }
 
-// Multinomial coefficient.
+// # Multinomial coefficient.
 //
 //	(k₀ + k₁ + k₂ + ··· )! / (k₀! ✶ k₁! ✶ k₂! ✶ ··· )
 func Multinomial(k ...int) (m float) {
@@ -1345,7 +1349,7 @@ func Multinomial(k ...int) (m float) {
 	return
 }
 
-// Hyper-geometric distribution probability.
+// # Hyper-geometric distribution probability.
 //
 // Equivalent to Excel
 //
@@ -1359,7 +1363,7 @@ func HypGeomDist(hits, draw, succ, size int) (prob float) {
 	return
 }
 
-// Calculate combination index and probability.
+// # Calculate combination index and probability.
 func Ludus(sides int, dice ...int) (total, index int, prob float) {
 	if sides >= 0 {
 		WSOGMM.Sort(&dice)
@@ -1423,6 +1427,7 @@ func SpigotPi(n int) (π []byte) {
 	return
 }
 
+// # Initialization
 func init() {
 	WSOGMM.Randomize()
 }
