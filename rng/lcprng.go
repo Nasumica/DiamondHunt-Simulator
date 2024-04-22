@@ -372,6 +372,8 @@ func (rnd *LCPRNG) Binomial(n int, p float) (b int) {
 }
 
 // # Exponential distribution random variable.
+//
+//	μ = σ = 1 / ƛ
 func (rnd *LCPRNG) Exponential(ƛ ...float) float {
 	e := -math.Log1p(-rnd.Random()) // domain = [0, 36.7368]
 	if len(ƛ) > 0 {
@@ -733,6 +735,21 @@ func (rnd *LCPRNG) Dirichlet(ɑ ...float) (d array) {
 		}
 	}
 	return
+}
+
+// # Nakagami distribution random variable.
+/*
+	g  = Γ(m + 1/2) / Γ(m)
+	h  = g² / m
+	μ² = Ω * h
+	σ² = Ω * (1 - h)
+*/
+func (rnd *LCPRNG) Nakagami(m, Ω float) float {
+	if m < 0.5 || Ω <= 0 {
+		return 0
+	} else {
+		return math.Sqrt(Ω * rnd.Gamma(m, m))
+	}
 }
 
 // # Maxwell–Boltzmann distribution random variable (3 degrees of freedom).
