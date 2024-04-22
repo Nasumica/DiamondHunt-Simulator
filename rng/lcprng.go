@@ -1387,7 +1387,7 @@ func SpigotPi(n int) (π []byte) {
 		return
 	}
 
-	b, h := (n*10+2)/3, 0
+	b, h := (n*10+2)/3, n
 	m := make([]int, b)
 	for i := range m {
 		m[i] = 2
