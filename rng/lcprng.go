@@ -150,6 +150,8 @@ func (rnd *LCPRNG) Choice(n int) int {
 }
 
 // # True with probability 1/2.
+//
+// Coin flip decision.
 func (rnd *LCPRNG) Flip() bool {
 	const mask octa = 1 << 61 // prime number high bit
 	return (rnd.Next() & mask) == 0
