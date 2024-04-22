@@ -495,6 +495,11 @@ func (rnd *LCPRNG) Laplace(μ, b float) float {
 	return μ + b
 }
 
+// # Suzuki distribution random variable.
+func (rnd *LCPRNG) Suzuki(μ, ν float) float {
+	return rnd.Rayleigh(rnd.LogNormal(μ, ν))
+}
+
 // # Cauchy distribution random variable.
 func (rnd *LCPRNG) Cauchy(x0, ɣ float) float {
 	if ɣ != 0 {
