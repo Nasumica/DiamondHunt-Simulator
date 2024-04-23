@@ -299,6 +299,9 @@ func (rnd *LCPRNG) Weighted(w *list) int {
 }
 
 // # Uniform random number in range (0, 1).
+//
+//	μ  = 1/2
+//	σ² = 1/12
 func (rnd *LCPRNG) Random() float {
 	var n octa
 	for n == 0 {
@@ -309,6 +312,9 @@ func (rnd *LCPRNG) Random() float {
 }
 
 // # Random angle (0, 2π).
+//
+//	μ = π
+//	σ = π / sqrt(3)
 func (rnd *LCPRNG) Angle() float {
 	const τ float = 2 * math.Pi // τ = 2π = 0x3243F6A8885A3p-47
 	return τ * rnd.Random()
