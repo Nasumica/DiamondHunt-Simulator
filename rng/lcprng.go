@@ -4,7 +4,6 @@ package rng
 
 import (
 	"crypto/rand"
-	"fmt"
 	"math"
 	"math/big"
 	"sync"
@@ -1479,5 +1478,4 @@ func SpigotPi(n int) (π []byte) {
 // # Initialization
 func init() {
 	WSOGMM.Randomize()
-	fmt.Println(PoissonDist(10, 0))
 }
