@@ -142,7 +142,7 @@ func (scr *Screen) Play(bet float64) HuntResponse {
 }
 
 type HuntResponse struct {
-	Hand     []Card  // closing hand (diamonds only)
+	Final    []Card  // closing hand (diamonds only)
 	Value    int     // hand value
 	Count    int     // number of ♦
 	Royals   int     // court cards
@@ -168,12 +168,12 @@ func (scr *Screen) Eval(bet float64) (resp HuntResponse) {
 			if c.Kind >= 11 {
 				resp.Royals++
 			}
-			resp.Hand = append(resp.Hand, c)
+			resp.Final = append(resp.Final, c)
 			resp.Value = (resp.Value << 4) + c.Kind // hex
 		}
 	}
 	if scr.Verbose {
-		scr.History("[" + Hand(&scr.Hand) + "]" + "[" + Hand(&resp.Hand) + "]")
+		scr.History("[" + Hand(&scr.Hand) + "]" + "[" + Hand(&resp.Final) + "]")
 	}
 
 	const straight int = 0xbcde // JQKA

@@ -615,7 +615,7 @@ func (rnd *LCPRNG) Erlang(k int, ƛ float) float {
 	return rnd.ChiSquared(2*k) / (2 * ƛ)
 }
 
-// # Γ distribution random variable.
+// # Gamma distribution random variable.
 //
 // Sum of α Exponential(β) randoms.
 //
@@ -645,7 +645,7 @@ func (rnd *LCPRNG) Gamma(ɑ float, β ...float) (g float) {
 	return
 }
 
-// # Β distribution random variable.
+// # Beta distribution random variable.
 func (rnd *LCPRNG) Beta(ɑ, β float) (b float) {
 	if ɑ > 0 && β > 0 {
 		switch { // some special cases
@@ -667,15 +667,24 @@ func (rnd *LCPRNG) Beta(ɑ, β float) (b float) {
 	return
 }
 
-// # Β' distribution random variable.
+// # Beta-prime distribution random variable.
 //
-//	Γ(α) / Γ(β) = Γ(α, Γ(β))
+//	Gamma(α) / Gamma(β) = Gamma(α, Gamma(β))
 func (rnd *LCPRNG) BetaPrime(ɑ, β float) (b float) {
 	b = rnd.Beta(ɑ, β)
 	if b != 0 && b != 1 {
 		b /= 1 - b
 	}
 	return
+}
+
+// # Inverse-Gamma distribution random variable.
+func (rnd *LCPRNG) InvGamma(ɑ, β float) float {
+	if ɑ > 0 && β > 0 {
+		return β / rnd.Gamma(ɑ)
+	} else {
+		return 0
+	}
 }
 
 // # Student's t-distribution random variable with ν degrees of freedom.
