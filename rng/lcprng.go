@@ -346,6 +346,9 @@ func (rnd *LCPRNG) Rademacher(x float) float {
 }
 
 // # Binomial distribution random variable.
+//
+//	μ  = n · p
+//	σ² = μ  · (1 - p)
 func (rnd *LCPRNG) Binomial(n int, p float) (b int) {
 	if p <= 0 || n <= 0 {
 		return 0
