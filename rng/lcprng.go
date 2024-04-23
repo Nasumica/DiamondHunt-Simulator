@@ -4,6 +4,7 @@ package rng
 
 import (
 	"crypto/rand"
+	"fmt"
 	"math"
 	"math/big"
 	"sync"
@@ -530,7 +531,6 @@ func (rnd *LCPRNG) Logistic(μ, s float) float {
 // # Poisson distribution random variable.
 //
 //	μ = σ² = ƛ
-//	p(n) = exp(-ƛ) ✶ ƛⁿ / n!
 func (rnd *LCPRNG) Poisson(ƛ float) (n int) {
 	const limit = 256
 	if ƛ > 0 {
@@ -1386,22 +1386,26 @@ func HypGeomDist(hits, draw, succ, size int) (prob float) {
 }
 
 // # Poisson distribution probability.
-func PoissonDist(n int, ƛ float) (prob array, cumul float) {
-	if n >= 0 && ƛ > 0 {
+//
+//	prob[n] = exp(-ƛ) ✶ ƛⁿ / n!
+//	rest = 1 - Σ prob
+func PoissonDist(n int, ƛ float) (prob array, rest float) {
+	if n >= 0 && ƛ >= 0 {
 		prob = make(array, n+1)
+		rest = 1
 		if e := math.Exp(-ƛ); e > 0 {
-			a := float(1)
+			a := rest
 			prob[0] = a * e
-			cumul = prob[0]
+			rest -= prob[0]
 			for i := 1; i <= n; i++ {
 				if a *= ƛ / float(i); a == 0 {
 					break
 				}
 				prob[i] = a * e
-				cumul += prob[i]
+				rest -= prob[i]
 			}
-			if cumul > 1 {
-				cumul = 1
+			if rest < 0 {
+				rest = 0
 			}
 		}
 	}
@@ -1475,4 +1479,5 @@ func SpigotPi(n int) (π []byte) {
 // # Initialization
 func init() {
 	WSOGMM.Randomize()
+	fmt.Println(PoissonDist(10, 0))
 }
