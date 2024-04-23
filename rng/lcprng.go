@@ -513,7 +513,7 @@ func (rnd *LCPRNG) Suzuki(μ, ν float) float {
 
 // # Cauchy distribution random variable.
 //
-//	σ = undefined
+//	μ = σ = undefined
 func (rnd *LCPRNG) Cauchy(x0, ɣ float) float {
 	if ɣ != 0 {
 		ɣ *= math.Tan(rnd.Angle()) // due to inexact π: tan(π/2) = 16331239353195392
