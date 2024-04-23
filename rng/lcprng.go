@@ -1386,7 +1386,8 @@ func HypGeomDist(hits, draw, succ, size int) (prob float) {
 
 // # Poisson distribution probability.
 //
-//	prob[n] = exp(-ƛ) ✶ ƛⁿ / n!
+//	i = 0, ..., n
+//	prob[i] = exp(-ƛ) ✶ ƛⁱ / i!
 //	rest = 1 - Σ prob
 func PoissonDist(n int, ƛ float) (prob array, rest float) {
 	if n >= 0 && ƛ >= 0 {
