@@ -1385,6 +1385,29 @@ func HypGeomDist(hits, draw, succ, size int) (prob float) {
 	return
 }
 
+// # Poisson distribution probability.
+func PoissonDist(n int, ƛ float) (prob array, cumul float) {
+	if n >= 0 && ƛ > 0 {
+		prob = make(array, n+1)
+		if e := math.Exp(-ƛ); e > 0 {
+			a := float(1)
+			prob[0] = a * e
+			cumul = prob[0]
+			for i := 1; i <= n; i++ {
+				if a *= ƛ / float(i); a == 0 {
+					break
+				}
+				prob[i] = a * e
+				cumul += prob[i]
+			}
+			if cumul > 1 {
+				cumul = 1
+			}
+		}
+	}
+	return
+}
+
 // # Calculate combination index and probability.
 func Ludus(sides int, dice ...int) (total, index int, prob float) {
 	if sides >= 0 {
