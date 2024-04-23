@@ -1391,21 +1391,19 @@ func HypGeomDist(hits, draw, succ, size int) (prob float) {
 func PoissonDist(n int, ƛ float) (prob array, rest float) {
 	if n >= 0 && ƛ >= 0 {
 		prob = make(array, n+1)
-		rest = 1
-		if e := math.Exp(-ƛ); e > 0 {
-			a := rest
-			prob[0] = a * e
-			rest -= prob[0]
-			for i := 1; i <= n; i++ {
-				if a *= ƛ / float(i); a == 0 {
-					break
-				}
-				prob[i] = a * e
-				rest -= prob[i]
+		prob[0] = math.Exp(-ƛ)
+		for i := 1; i <= n; i++ {
+			prob[i] = prob[i-1] * ƛ / float64(i)
+			if prob[i] == 0 {
+				break
 			}
-			if rest < 0 {
-				rest = 0
-			}
+		}
+		for i := n; i >= 0; i-- {
+			rest += prob[i]
+		}
+		rest = 1 - rest
+		if rest < 0 {
+			rest = 0
 		}
 	}
 	return
