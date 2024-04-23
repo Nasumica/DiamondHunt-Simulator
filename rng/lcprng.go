@@ -751,9 +751,8 @@ func (rnd *LCPRNG) Dirichlet(ɑ ...float) (d array) {
 func (rnd *LCPRNG) Nakagami(m, Ω float) float {
 	if m < 0.5 || Ω <= 0 {
 		return 0
-	} else {
-		return math.Sqrt(Ω * rnd.Gamma(m, m))
 	}
+	return math.Sqrt(Ω * rnd.Gamma(m, m))
 }
 
 // # Maxwell–Boltzmann distribution random variable (3 degrees of freedom).
