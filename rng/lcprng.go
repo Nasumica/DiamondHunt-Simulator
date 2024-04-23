@@ -570,11 +570,11 @@ func (rnd *LCPRNG) Hermite(ɑ1, ɑ2 float) (n int) {
 }
 
 // # χ² distribution random variable with k degrees of freedom.
-//
-// Sum of k squared Gauss randoms.
-//
-//	μ  = k
-//	σ² = 2 k
+/*
+Sum of k squared Gauss randoms.
+	μ  = k
+	σ² = 2 k
+*/
 func (rnd *LCPRNG) ChiSquared(k int) float {
 	const limit = 256
 	var x float
@@ -616,11 +616,11 @@ func (rnd *LCPRNG) Erlang(k int, ƛ float) float {
 }
 
 // # Gamma distribution random variable.
-//
-// Sum of α Exponential(β) randoms.
-//
-//	μ  = ɑ / β
-//	σ² = ɑ / β²
+/*
+Sum of α Exponential(β) randoms.
+	μ  = ɑ / β
+	σ² = ɑ / β²
+*/
 func (rnd *LCPRNG) Gamma(ɑ float, β ...float) (g float) {
 	if ɑ > 0 {
 		t, a := math.Modf(2 * ɑ) // trunc & frac
@@ -686,15 +686,13 @@ func (rnd *LCPRNG) InvGamma(ɑ, β float) float {
 }
 
 // # Student's t-distribution random variable with ν degrees of freedom.
-//
-// Normal distribution with
-//
-//	μ  = 0
-//	σ² = ν / χ²(ν)
-//
-// For ν -> ∞, σ -> 1
-//
-//	StudentsT(∞) = Normal(0, 1) = Gauss()
+/*
+Normal distribution with
+	μ  = 0
+	σ² = ν / χ²(ν)
+For ν -> ∞, σ -> 1
+	StudentsT(∞) = Normal(0, 1) = Gauss()
+*/
 func (rnd *LCPRNG) StudentsT(ν float) (t float) {
 	if ν > 0 {
 		t = rnd.Gauss()
@@ -717,12 +715,12 @@ func (rnd *LCPRNG) SnedecorsF(d1, d2 float) (f float) {
 }
 
 // # Dirichlet distribution random array which sum is equal to 1.
-//
-// Weighted random cuts.
-//
-//	s  = Σ ɑ
-//	μᵢ = ɑᵢ / s
-//	σᵢ = sqrt(ɑᵢ ✶ (s - ɑᵢ) / (s + 1)) / s
+/*
+Weighted random cuts.
+	s  = Σ ɑ
+	μᵢ = ɑᵢ / s
+	σᵢ = sqrt(ɑᵢ ✶ (s - ɑᵢ) / (s + 1)) / s
+*/
 func (rnd *LCPRNG) Dirichlet(ɑ ...float) (d array) {
 	if n := len(ɑ); n > 0 {
 		d = make(array, n)
@@ -765,16 +763,11 @@ func (rnd *LCPRNG) Nakagami(m, Ω float) float {
 // # Maxwell–Boltzmann distribution random variable (3 degrees of freedom).
 /*
 Random speed of particle (m/s) in 3D space where
-
 	M = molar mass (g/mol)
 	T = temperature (°C)
-
 For example, use
-
 	Maxwellian(32, 25)
-
 for
-
 	M (oxygen molecule O₂) = 16 · 2 = 32 g/mol
 	T (room temperature) = 25°C
 */
