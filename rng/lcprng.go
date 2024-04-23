@@ -668,12 +668,10 @@ func (rnd *LCPRNG) Beta(ɑ, β float) (b float) {
 }
 
 // # Beta-prime distribution random variable.
-//
-//	Gamma(α) / Gamma(β) = Gamma(α, Gamma(β))
 func (rnd *LCPRNG) BetaPrime(ɑ, β float) (b float) {
 	b = rnd.Beta(ɑ, β)
 	if b != 0 && b != 1 {
-		b /= 1 - b
+		b /= 1 - b // Gamma(α) / Gamma(β)
 	}
 	return
 }
