@@ -488,6 +488,8 @@ func (rnd *LCPRNG) ExpNormal(μ, σ, ƛ float) float {
 }
 
 // # Laplace distribution random variable.
+//
+//	σ = b · sqrt(2)
 func (rnd *LCPRNG) Laplace(μ, b float) float {
 	if b != 0 {
 		b *= rnd.Rademacher(rnd.Exponential())
@@ -501,6 +503,8 @@ func (rnd *LCPRNG) Suzuki(μ, ν float) float {
 }
 
 // # Cauchy distribution random variable.
+//
+//	σ = undefined
 func (rnd *LCPRNG) Cauchy(x0, ɣ float) float {
 	if ɣ != 0 {
 		ɣ *= math.Tan(rnd.Angle()) // due to inexact π: tan(π/2) = 16331239353195392
@@ -520,6 +524,8 @@ func (rnd *LCPRNG) Tukey(ƛ float) float {
 }
 
 // # Logistic distribution random variable.
+//
+//	σ = s · π / sqrt(3)
 func (rnd *LCPRNG) Logistic(μ, s float) float {
 	if s != 0 {
 		s *= rnd.Tukey(0)
@@ -1474,5 +1480,4 @@ func SpigotPi(n int) (π []byte) {
 // # Initialization
 func init() {
 	WSOGMM.Randomize()
-	PoissonDist(9, 1)
 }
