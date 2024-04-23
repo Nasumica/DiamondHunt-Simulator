@@ -1392,16 +1392,14 @@ func PoissonDist(n int, ƛ float) (prob array, rest float) {
 	if n >= 0 && ƛ >= 0 {
 		prob = make(array, n+1)
 		prob[0] = math.Exp(-ƛ)
+		rest = 1 - prob[0]
 		for i := 1; i <= n; i++ {
 			prob[i] = prob[i-1] * ƛ / float64(i)
 			if prob[i] == 0 {
 				break
 			}
+			rest -= prob[i]
 		}
-		for i := n; i >= 0; i-- {
-			rest += prob[i]
-		}
-		rest = 1 - rest
 		if rest < 0 {
 			rest = 0
 		}
@@ -1476,4 +1474,5 @@ func SpigotPi(n int) (π []byte) {
 // # Initialization
 func init() {
 	WSOGMM.Randomize()
+	PoissonDist(9, 1)
 }
