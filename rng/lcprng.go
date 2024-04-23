@@ -1491,8 +1491,4 @@ func SpigotPi(n int) (π []byte) {
 // # Initialization
 func init() {
 	WSOGMM.Randomize()
-	var sc StatCalc
-	for sc.Cnt < 1000000 {
-		sc.Add(WSOGMM.Wald(5, 5))
-	}
 }
