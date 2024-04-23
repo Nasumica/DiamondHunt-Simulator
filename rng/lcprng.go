@@ -745,9 +745,9 @@ func (rnd *LCPRNG) Dirichlet(ɑ ...float) (d array) {
 // # Nakagami distribution random variable.
 /*
 	g  = Γ(m + 1/2) / Γ(m)
-	h  = g² / m
-	μ² = Ω * h
-	σ² = Ω * (1 - h)
+	p  = g² / m
+	μ² = Ω * p
+	σ² = Ω * (1 - p)
 */
 func (rnd *LCPRNG) Nakagami(m, Ω float) float {
 	if m < 0.5 || Ω <= 0 {
