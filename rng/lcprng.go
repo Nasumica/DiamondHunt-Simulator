@@ -809,6 +809,8 @@ func (rnd *LCPRNG) Maxwellian(M, T float) (v float) {
 }
 
 // # Inverse Gausian distribution random variable.
+//
+//	σ² = μ³ / ƛ
 func (rnd *LCPRNG) Wald(μ, ƛ float) (w float) {
 	if μ > 0 && ƛ > 0 {
 		ƛ *= 2
@@ -1489,4 +1491,8 @@ func SpigotPi(n int) (π []byte) {
 // # Initialization
 func init() {
 	WSOGMM.Randomize()
+	var sc StatCalc
+	for sc.Cnt < 1000000 {
+		sc.Add(WSOGMM.Wald(5, 5))
+	}
 }
