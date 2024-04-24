@@ -340,7 +340,7 @@ func (rnd *LCPRNG) Bernoulli(p float) bool {
 
 // # Rademacher distribution random variable {-x or x}.
 //
-// Random sign of number.
+// Random sign of the given number.
 //
 //	μ = 0
 //	σ = x
