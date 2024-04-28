@@ -1491,7 +1491,7 @@ func SpigotPi(n int) (π []byte) {
 
 // # Babuška summation
 //
-// Iterative Kahan–Babuška algorithm.
+// Second-order iterative Kahan–Babuška algorithm.
 type Babushka struct {
 	s, cs, ccs, c, cc float
 }
