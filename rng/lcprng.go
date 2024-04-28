@@ -1414,12 +1414,11 @@ func PoissonDist(n int, ƛ float) (prob array, rest float) {
 				prob[0], rest = 1, 0
 			} else {
 				prob[0] = math.Exp(-ƛ)
-				rest -= prob[0]
 				for i := 1; i <= n; i++ {
 					prob[i] = prob[i-1] * ƛ / float64(i)
-					rest -= prob[i]
 				}
-				if rest < 0 {
+				var b Babushka
+				if rest -= b.Sum(prob...); rest < 0 {
 					rest = 0
 				}
 			}
