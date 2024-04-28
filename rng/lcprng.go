@@ -1418,9 +1418,7 @@ func PoissonDist(n int, ƛ float) (prob array, rest float) {
 					prob[i] = prob[i-1] * ƛ / float64(i)
 				}
 				var b Babushka
-				if rest -= b.Sum(prob...); rest < 0 {
-					rest = 0
-				}
+				rest = math.Max(0, 1-b.Sum(prob...))
 			}
 		}
 	}
@@ -1491,7 +1489,9 @@ func SpigotPi(n int) (π []byte) {
 	return
 }
 
-// # Babuška summation.
+// # Babuška summation
+//
+// Iterative Kahan–Babuška algorithm.
 type Babushka struct {
 	s, cs, ccs, c, cc float
 }
@@ -1501,7 +1501,7 @@ func (b *Babushka) Reset() {
 	b.s, b.cs, b.ccs, b.c, b.cc = 0, 0, 0, 0, 0
 }
 
-// # Calculate Σ x.
+// # Σ x
 func (b *Babushka) Sum(x ...float) float {
 	for _, a := range x {
 		t := b.s + a
@@ -1519,7 +1519,6 @@ func (b *Babushka) Sum(x ...float) float {
 		}
 		b.cs = t
 		b.ccs += b.cc
-
 	}
 	return b.s + b.cs + b.ccs
 }
