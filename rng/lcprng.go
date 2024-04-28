@@ -1406,23 +1406,24 @@ func HypGeomDist(hits, draw, succ, size int) (prob float) {
 //	prob[i] = exp(-ƛ) ✶ ƛⁱ / i!
 //	rest = 1 - Σ prob
 func PoissonDist(n int, ƛ float) (prob array, rest float) {
-	if n >= 0 && ƛ >= 0 {
+	rest = 1
+	if n >= 0 {
 		prob = make(array, n+1)
-		if ƛ == 0 {
-			prob[0] = 1
-		} else {
-			prob[0] = math.Exp(-ƛ)
-			rest = 1 - prob[0]
-			for i := 1; i <= n; i++ {
-				prob[i] = prob[i-1] * ƛ / float64(i)
-				rest -= prob[i]
-			}
-			if rest < 0 {
-				rest = 0
+		if ƛ >= 0 {
+			if ƛ == 0 {
+				prob[0], rest = 1, 0
+			} else {
+				prob[0] = math.Exp(-ƛ)
+				rest -= prob[0]
+				for i := 1; i <= n; i++ {
+					prob[i] = prob[i-1] * ƛ / float64(i)
+					rest -= prob[i]
+				}
+				if rest < 0 {
+					rest = 0
+				}
 			}
 		}
-	} else {
-		rest = 1
 	}
 	return
 }
@@ -1489,6 +1490,39 @@ func SpigotPi(n int) (π []byte) {
 	}
 
 	return
+}
+
+// # Babuška summation.
+type Babushka struct {
+	s, cs, ccs, c, cc float
+}
+
+// # Reset to 0.
+func (b *Babushka) Reset() {
+	b.s, b.cs, b.ccs, b.c, b.cc = 0, 0, 0, 0, 0
+}
+
+// # Calculate Σ x.
+func (b *Babushka) Sum(x ...float) float {
+	for _, a := range x {
+		t := b.s + a
+		if math.Abs(b.s) >= math.Abs(a) {
+			b.c = (b.s - t) + a
+		} else {
+			b.c = (a - t) + b.s
+		}
+		b.s = t
+		t = b.cs + b.c
+		if math.Abs(b.cs) >= math.Abs(b.c) {
+			b.cc = (b.cs - t) + b.c
+		} else {
+			b.cc = (b.c - t) + b.cs
+		}
+		b.cs = t
+		b.ccs += b.cc
+
+	}
+	return b.s + b.cs + b.ccs
 }
 
 // # Initialization
