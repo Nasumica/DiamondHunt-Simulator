@@ -1421,6 +1421,8 @@ func PoissonDist(n int, ƛ float) (prob array, rest float) {
 				rest = 0
 			}
 		}
+	} else {
+		rest = 1
 	}
 	return
 }
