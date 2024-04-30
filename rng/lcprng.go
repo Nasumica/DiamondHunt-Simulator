@@ -1501,25 +1501,29 @@ func (b *Babushka) Reset() {
 	b.sum, b.cs, b.ccs, b.c, b.cc, b.s = 0, 0, 0, 0, 0, 0
 }
 
+func (b *Babushka) Add(x float) {
+	b.s += x
+	t := b.sum + x
+	if math.Abs(b.sum) >= math.Abs(x) {
+		b.c = (b.sum - t) + x
+	} else {
+		b.c = (x - t) + b.sum
+	}
+	b.sum = t
+	t = b.cs + b.c
+	if math.Abs(b.cs) >= math.Abs(b.c) {
+		b.cc = (b.cs - t) + b.c
+	} else {
+		b.cc = (b.c - t) + b.cs
+	}
+	b.cs = t
+	b.ccs += b.cc
+}
+
 // # Σ x
 func (b *Babushka) Sum(x ...float) float {
 	for _, a := range x {
-		b.s += a
-		t := b.sum + a
-		if math.Abs(b.sum) >= math.Abs(a) {
-			b.c = (b.sum - t) + a
-		} else {
-			b.c = (a - t) + b.sum
-		}
-		b.sum = t
-		t = b.cs + b.c
-		if math.Abs(b.cs) >= math.Abs(b.c) {
-			b.cc = (b.cs - t) + b.c
-		} else {
-			b.cc = (b.c - t) + b.cs
-		}
-		b.cs = t
-		b.ccs += b.cc
+		b.Add(a)
 	}
 	return b.sum + b.cs + b.ccs
 }
