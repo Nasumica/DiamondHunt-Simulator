@@ -25,7 +25,8 @@ func main() {
 	var sw StopWatch
 	sw.Start()
 	fmt.Println()
-	iter := 109750000
+	million := 1000 * 1000
+	iter := 500 * million
 	DiamondHunt(iter)
 	elapsed, speed := sw.Eplased(iter)
 	fmt.Printf("%d games,  elapsed = %.3f\",  speed = %.0f games / s\n", iter, elapsed, speed)

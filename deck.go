@@ -23,13 +23,12 @@ func (card *Card) Reveal() {
 		card.Face = kinds[k] + suits[s]
 		card.Kind = k + 2
 		card.Suit = s + 1
-		card.Load = card.Card
 		if card.Suit == 2 { // karo
-			l := card.Kind
-			if l >= 11 {
-				l = 25 - l
+			if card.Kind < 11 {
+				card.Load = 1
+			} else {
+				card.Load = 16 - card.Kind
 			}
-			card.Load = l + 52
 		}
 	} else {
 		card.Face = "★"
@@ -66,14 +65,25 @@ func Hand(cards *[]Card) (hand string) {
 }
 
 var CardVirtues []Card
+var CardMap map[string]Card
 
 func InitVirtues() {
+	CardMap = map[string]Card{}
 	for i := 0; i <= 52; i++ {
 		c := Card{Card: i}
 		c.Reveal()
 		c.Index = i
 		CardVirtues = append(CardVirtues, c)
+		CardMap[c.Face] = c
 	}
+}
+
+func Make(cards ...string) []Card {
+	m := []Card{}
+	for _, c := range cards {
+		m = append(m, CardMap[c])
+	}
+	return m
 }
 
 // Deck of cards.

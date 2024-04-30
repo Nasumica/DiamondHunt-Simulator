@@ -83,8 +83,8 @@ func (scr *Screen) Draw() int {
 // Hunt for diamond.
 func (scr *Screen) Hunt() (more bool) {
 	const (
-		reuse = true
-		diam  = true
+		reuse = false
+		diam  = false
 	)
 
 	i := scr.Draw()   // diamond card index
@@ -162,6 +162,7 @@ type HuntResponse struct {
 func (scr *Screen) Eval(bet float64) (resp HuntResponse) {
 	resp.Swaps = scr.Swaps
 	resp.Open = scr.Open
+	// scr.Diam = Make("J♦", "Q♦", "K♦", "A♦")
 	for _, c := range scr.Diam {
 		if c.Suit == DiamondSuit {
 			resp.Count++
@@ -169,15 +170,15 @@ func (scr *Screen) Eval(bet float64) (resp HuntResponse) {
 				resp.Royals++
 			}
 			resp.Final = append(resp.Final, c)
-			resp.Value = (resp.Value << 4) + c.Kind // hex
+			resp.Value = resp.Value*10 + c.Load
 		}
 	}
 	if scr.Verbose {
 		scr.History("[" + Hand(&scr.Hand) + "]" + "[" + Hand(&resp.Final) + "]")
 	}
 
-	const straight int = 0xbcde // JQKA
-	resp.Straight = resp.Value == straight
+	const straight int = 5432 // JQKA
+	resp.Straight = scr.Swaps == 0 && resp.Value == straight
 
 	cat := fmt.Sprintf("%d", resp.Count)
 	resp.Cat = cat + "♦"
@@ -235,7 +236,7 @@ func AddCat(cat string, x float64) {
 
 func DiamondHunt(iter int, chips ...float64) {
 	var scr Screen
-	scr.Verbose = true
+	scr.Verbose = false
 	var bet, win rng.StatCalc
 	bet.Cat, win.Cat = "bet", "win"
 
@@ -281,7 +282,7 @@ func DiamondHunt(iter int, chips ...float64) {
 	for h, o := range opens {
 		fmt.Printf("%-4d  %-4s  %10d", h, "", o)
 		prob := float64(o) / play.Sum
-		fmt.Printf("  %9.5f%%", 100*prob)
+		fmt.Printf("  %13.9f%%", 100*prob)
 		if prob > 0 {
 			rate := 1 / prob
 			fmt.Printf("  %27.2f", rate)
@@ -290,7 +291,7 @@ func DiamondHunt(iter int, chips ...float64) {
 		for d, c := range chart[h] {
 			fmt.Printf("%-4s  %-4d  %10d", "", d, c)
 			prob := float64(c) / play.Sum
-			fmt.Printf("  %9.5f%%", 100*prob)
+			fmt.Printf("  %13.9f%%", 100*prob)
 			if prob > 0 {
 				rate := 1 / prob
 				fmt.Printf("  %27.2f", rate)
@@ -306,7 +307,7 @@ func DiamondHunt(iter int, chips ...float64) {
 		s := CatStat[d]
 		prob := float64(s.Cnt) / play.Sum
 		rtp := s.Sum / bet.Sum
-		fmt.Printf("%-10s  %10d  %9.5f%%  %9.5f%%  %15.2f\n", d, s.Cnt, 100*prob, 100*rtp, 1/prob)
+		fmt.Printf("%-10s  %10d  %13.9f%%  %9.5f%%  %15.2f\n", d, s.Cnt, 100*prob, 100*rtp, 1/prob)
 	}
 	rtp := win.Sum / bet.Sum
 	fmt.Printf("rtp = %.2f%%\n", 100*rtp)

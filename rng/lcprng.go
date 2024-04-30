@@ -1493,24 +1493,25 @@ func SpigotPi(n int) (π []byte) {
 //
 // Second-order iterative Kahan–Babuška algorithm.
 type Babushka struct {
-	s, cs, ccs, c, cc float
+	sum, cs, ccs, c, cc, s float
 }
 
 // # Reset to 0.
 func (b *Babushka) Reset() {
-	b.s, b.cs, b.ccs, b.c, b.cc = 0, 0, 0, 0, 0
+	b.sum, b.cs, b.ccs, b.c, b.cc, b.s = 0, 0, 0, 0, 0, 0
 }
 
 // # Σ x
 func (b *Babushka) Sum(x ...float) float {
 	for _, a := range x {
-		t := b.s + a
-		if math.Abs(b.s) >= math.Abs(a) {
-			b.c = (b.s - t) + a
+		b.s += a
+		t := b.sum + a
+		if math.Abs(b.sum) >= math.Abs(a) {
+			b.c = (b.sum - t) + a
 		} else {
-			b.c = (a - t) + b.s
+			b.c = (a - t) + b.sum
 		}
-		b.s = t
+		b.sum = t
 		t = b.cs + b.c
 		if math.Abs(b.cs) >= math.Abs(b.c) {
 			b.cc = (b.cs - t) + b.c
@@ -1520,7 +1521,7 @@ func (b *Babushka) Sum(x ...float) float {
 		b.cs = t
 		b.ccs += b.cc
 	}
-	return b.s + b.cs + b.ccs
+	return b.sum + b.cs + b.ccs
 }
 
 // # Initialization
