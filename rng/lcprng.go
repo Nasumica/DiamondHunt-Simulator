@@ -823,7 +823,7 @@ func (rnd *LCPRNG) Wald(μ, ƛ float) (w float) {
 	return
 }
 
-// # Pareto  distribution random variable.
+// # Pareto distribution random variable.
 func (rnd *LCPRNG) Pareto(xm, ɑ float) (p float) {
 	if xm > 0 && ɑ > 0 {
 		p = xm * math.Exp(rnd.Exponential(ɑ))
@@ -831,17 +831,26 @@ func (rnd *LCPRNG) Pareto(xm, ɑ float) (p float) {
 	return
 }
 
-// # Lomax  distribution random variable.
+// # Lomax distribution random variable.
 func (rnd *LCPRNG) Lomax(ɑ, ƛ float) float {
 	return rnd.Pareto(ƛ, ɑ) - ƛ
 }
 
-// # Weibull  distribution random variable.
+// # Weibull distribution random variable.
 func (rnd *LCPRNG) Weibull(ƛ, k float) (w float) {
 	if ƛ > 0 && k > 0 {
 		w = ƛ * math.Pow(rnd.Exponential(), 1/k)
 	}
 	return
+}
+
+// # Yule–Simon distribution random variable.
+func (rnd *LCPRNG) Yule(ρ float) float {
+	if ρ > 0 {
+		return rnd.Geometric(math.Exp(-rnd.Exponential(ρ))) + 1
+	} else {
+		return 0
+	}
 }
 
 // # Logarithmic-uniform random variable.
@@ -1207,6 +1216,22 @@ func (rnd *LCPRNG) Disc(r float) (x, y float) {
 // # Shooting on target bullet position.
 func (rnd *LCPRNG) Target(dispersion float) (x, y float) {
 	return rnd.Circle(rnd.Rayleigh(dispersion))
+}
+
+// # Beckmann distribution random variable.
+func (rnd *LCPRNG) Beckmann(μ1, σ1, μ2, σ2 float) float {
+	x, y := rnd.Target(1)
+	return math.Hypot(μ1+x*σ1, μ2+y*σ2)
+}
+
+// # Rice distribution random variable.
+func (rnd *LCPRNG) Rice(ν, σ float) float {
+	if ν == 0 {
+		return rnd.Rayleigh(σ)
+	} else {
+		x, y := rnd.Circle(ν)
+		return rnd.Beckmann(x, σ, y, σ)
+	}
 }
 
 // # Color pixel random dither.
