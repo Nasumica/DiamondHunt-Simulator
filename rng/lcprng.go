@@ -1117,8 +1117,10 @@ func (rnd *LCPRNG) Forest(n int) (f string) {
 
 // # Cut deck of cards.
 func (rnd *LCPRNG) CutDeck(deck *list) (l, r list) {
-	c := rnd.Binomial(len(*deck), 0.5)
-	l, r = append(l, (*deck)[:c]...), append(r, (*deck)[c:]...)
+	if n := len(*deck); n > 0 {
+		n = rnd.Binomial(n, 0.5)
+		l, r = append(l, (*deck)[:n]...), append(r, (*deck)[n:]...)
+	}
 	return
 }
 
@@ -1451,41 +1453,33 @@ func Ludus(sides int, dice ...int) (total, index int, prob float) {
 
 // # Calculate n digits of π.
 func SpigotPi(n int) (π []byte) {
-	if n <= 0 {
-		return
-	}
-
-	b, h := (n*10+2)/3, n
-	m := make([]int, b)
-	for i := range m {
-		m[i] = 2
-	}
-
-	π = make([]byte, n)
-
-	for i := range π {
-		s, c := 0, 0
-		for j := b - 1; j >= 0; j-- {
-			k := 2*j + 1
-			s = 10*m[j] + c
-			c, m[j] = s/k*j, s%k
+	if n > 0 {
+		b, h := (n*10+2)/3, n
+		m, o := make([]int, b), 2*b-1
+		for j := range m {
+			m[j] = 2
 		}
-		m[0] = s % 10
-
-		d := byte(s / 10)
-		if d != 9 {
-			if d > 9 {
-				d -= 10
-				for j := h; j < i; j++ {
-					π[j] = (π[j] + 1) % 10
-				}
+		for i := 0; i < n; i++ {
+			s, c := 0, 0
+			for j, k := b, o; j > 0; k -= 2 {
+				j--
+				s = 10*m[j] + c
+				c, m[j] = s/k*j, s%k
 			}
-			h = i
+			m[0] = s % 10
+			d := byte(s / 10)
+			if d != 9 {
+				if d > 9 {
+					d -= 10
+					for j := h; j < i; j++ {
+						π[j] = (π[j] + 1) % 10
+					}
+				}
+				h = i
+			}
+			π = append(π, d)
 		}
-
-		π[i] = d
 	}
-
 	return
 }
 
@@ -1501,6 +1495,7 @@ func (b *Babushka) Reset() {
 	b.sum, b.cs, b.ccs, b.c, b.cc, b.s = 0, 0, 0, 0, 0, 0
 }
 
+// # Add x to sum.
 func (b *Babushka) Add(x float) {
 	b.s += x
 	t := b.sum + x
