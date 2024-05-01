@@ -590,9 +590,8 @@ Sum of k squared Gauss randoms.
 	μ  = k
 	σ² = 2 k
 */
-func (rnd *LCPRNG) ChiSquared(k int) float {
+func (rnd *LCPRNG) ChiSquared(k int) (x float) {
 	const limit = 256
-	var x float
 	if k < limit {
 		if k > 1 {
 			for x = 1; k > 1; k -= 2 {
@@ -607,7 +606,7 @@ func (rnd *LCPRNG) ChiSquared(k int) float {
 		x = float(k)
 		x = rnd.Normal(x, math.Sqrt(2*x))
 	}
-	return x
+	return
 }
 
 // # χ distribution random variable with k degrees of freedom.
@@ -713,7 +712,7 @@ func (rnd *LCPRNG) StudentsT(ν float) (t float) {
 		t = rnd.Gauss()
 		if !math.IsInf(ν, 1) {
 			ν /= 2
-			t *= math.Sqrt(ν / rnd.Gamma(ν))
+			t *= math.Sqrt(rnd.InvGamma(ν, ν))
 		}
 	}
 	return

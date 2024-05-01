@@ -30,8 +30,8 @@ func Diamonds(cards []Card) int {
 
 // Game screen
 type Screen struct {
-	Hand    []Card
-	Diam    []Card
+	Hand    Cards
+	Diam    Cards
 	Best    []int
 	Open    int
 	Swaps   int
@@ -40,12 +40,14 @@ type Screen struct {
 }
 
 func (scr *Screen) History(s string) {
-	scr.Flow += s
+	if scr.Verbose {
+		scr.Flow += s
+	}
 }
 
 // Swap pick best strategy.
 func (scr *Screen) Strategy() {
-	s := []Card{}
+	s := Cards{}
 	for _, c := range scr.Hand {
 		if c.Suit == DiamondSuit { // insertion sort
 			i := len(s)
@@ -91,7 +93,7 @@ func (scr *Screen) Hunt() (more bool) {
 	d := &scr.Diam[i] // card from diamond
 
 	if scr.Verbose {
-		scr.History("[" + Hand(&scr.Hand) + "][" + Hand(&scr.Diam))
+		scr.History("[" + scr.Hand.Faces() + "][" + scr.Diam.Faces())
 	}
 
 	swap := false
@@ -142,8 +144,9 @@ func (scr *Screen) Play(bet float64) HuntResponse {
 }
 
 type HuntResponse struct {
-	Final    []Card  // closing hand (diamonds only)
+	Final    Cards   // closing hand (diamonds only)
 	Value    int     // hand value
+	Code     int     // hand code
 	Count    int     // number of ♦
 	Royals   int     // court cards
 	Straight bool    // is straight?
@@ -162,6 +165,7 @@ type HuntResponse struct {
 func (scr *Screen) Eval(bet float64) (resp HuntResponse) {
 	resp.Swaps = scr.Swaps
 	resp.Open = scr.Open
+	resp.Code = 1
 	// scr.Diam = Make("J♦", "Q♦", "K♦", "A♦")
 	for _, c := range scr.Diam {
 		if c.Suit == DiamondSuit {
@@ -171,10 +175,11 @@ func (scr *Screen) Eval(bet float64) (resp HuntResponse) {
 			}
 			resp.Final = append(resp.Final, c)
 			resp.Value = resp.Value*10 + c.Load
+			resp.Code *= c.Code
 		}
 	}
 	if scr.Verbose {
-		scr.History("[" + Hand(&scr.Hand) + "]" + "[" + Hand(&resp.Final) + "]")
+		scr.History("[" + scr.Hand.Faces() + "]" + "[" + resp.Final.Faces() + "]")
 	}
 
 	const straight int = 5432 // JQKA
@@ -188,7 +193,6 @@ func (scr *Screen) Eval(bet float64) (resp HuntResponse) {
 		resp.Free = 1
 	case 4:
 		resp.Win = 4
-
 		switch resp.Royals {
 		case 0:
 		case 4:
@@ -236,7 +240,7 @@ func AddCat(cat string, x float64) {
 
 func DiamondHunt(iter int, chips ...float64) {
 	var scr Screen
-	scr.Verbose = false
+	scr.Verbose = true
 	var bet, win rng.StatCalc
 	bet.Cat, win.Cat = "bet", "win"
 

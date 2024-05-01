@@ -11,7 +11,10 @@ type Card struct {
 	Card  int
 	Index int
 	Load  int
+	Code  int
 }
+
+type Cards []Card
 
 // Reveal card.
 func (card *Card) Reveal() {
@@ -23,6 +26,7 @@ func (card *Card) Reveal() {
 		card.Face = kinds[k] + suits[s]
 		card.Kind = k + 2
 		card.Suit = s + 1
+		card.Load = 0
 		if card.Suit == 2 { // karo
 			if card.Kind < 11 {
 				card.Load = 1
@@ -30,20 +34,21 @@ func (card *Card) Reveal() {
 				card.Load = 16 - card.Kind
 			}
 		}
+		card.Code = []int{1, 2, 3, 5, 7, 11}[card.Load]
 	} else {
 		card.Face = "★"
 	}
 }
 
 func (card *Card) IsDiam() bool {
-	return (card.Suit == 2)
+	return (card.Load > 0)
 }
 
 func (card *Card) IsRoyal() bool {
-	return (card.Kind >= 11)
+	return (card.Load > 1)
 }
 
-func SortCards(c *[]Card) {
+func (c *Cards) Sort() {
 	n := len(*c)
 	var l, r int
 	for r = 1; r < n; r++ { // insertion sort
@@ -55,35 +60,53 @@ func SortCards(c *[]Card) {
 	}
 }
 
-func Hand(cards *[]Card) (hand string) {
-	d := ""
-	for _, c := range *cards {
-		hand += d + c.Face
+func (c *Cards) Faces() string {
+	f, d := "", ""
+	for _, c := range *c {
+		f += d + c.Face
 		d = " "
 	}
-	return
+	return f
 }
 
-var CardVirtues []Card
-var CardMap map[string]Card
+func (c *Cards) Code() int {
+	n := 1
+	for _, c := range *c {
+		n *= c.Code
+	}
+	return n
+}
+
+func (c *Cards) Value() int {
+	n := 0
+	for _, c := range *c {
+		n = 10*n + c.Load
+	}
+	return n
+}
+
+var CardVirtues Cards
+var CardMap map[string]int
 
 func InitVirtues() {
-	CardMap = map[string]Card{}
+	CardMap = map[string]int{}
 	for i := 0; i <= 52; i++ {
 		c := Card{Card: i}
 		c.Reveal()
 		c.Index = i
 		CardVirtues = append(CardVirtues, c)
-		CardMap[c.Face] = c
+		CardMap[c.Face] = i
 	}
 }
 
-func Make(cards ...string) []Card {
-	m := []Card{}
-	for _, c := range cards {
-		m = append(m, CardMap[c])
+// Make hand from faces.
+func Make(faces ...string) (hand Cards) {
+	for _, f := range faces {
+		if m, e := CardMap[f]; e {
+			hand = append(hand, CardVirtues[m])
+		}
 	}
-	return m
+	return
 }
 
 // Deck of cards.
@@ -121,28 +144,28 @@ func (deck *Deck) Draw() (card Card) {
 }
 
 // Deal cards from deck (Fisher-Yates).
-func (deck *Deck) Deal(cards int) (deal []Card) {
+func (deck *Deck) Deal(cards int) (hand Cards) {
 	if cards > 0 {
-		deal = make([]Card, cards)
-		for i := range deal {
+		hand = make(Cards, cards)
+		for i := range hand {
 			c := deck.Draw()
 			if c.Index >= 0 {
 				c.Index = i
 			}
-			deal[i] = c
+			hand[i] = c
 		}
 	}
 	return
 }
 
 // Deal cards from whole deck.
-func (deck *Deck) NewDeal(cards int) []Card {
+func (deck *Deck) NewDeal(cards int) Cards {
 	deck.Reset()
 	return deck.Deal(cards)
 }
 
 // Empty hand.
-func (deck *Deck) Null() (hand []Card) {
+func (deck *Deck) Null() (hand Cards) {
 	return
 }
 
