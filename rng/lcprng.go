@@ -624,11 +624,6 @@ func (rnd *LCPRNG) Chi(k int) (x float) {
 	return
 }
 
-// # Erlang distribution random variable.
-func (rnd *LCPRNG) Erlang(k int, ƛ float) float {
-	return rnd.ChiSquared(2*k) / (2 * ƛ)
-}
-
 // # Gamma distribution random variable.
 /*
 Sum of α Exponential(β) randoms.
@@ -690,6 +685,14 @@ func (rnd *LCPRNG) BetaPrime(ɑ, β float) (b float) {
 	return
 }
 
+// # Erlang distribution random variable.
+//
+//	μ  = k / ƛ
+//	σ² = k / ƛ²
+func (rnd *LCPRNG) Erlang(k int, ƛ float) float {
+	return rnd.Gamma(float(k), ƛ)
+}
+
 // # Inverse-Gamma distribution random variable.
 func (rnd *LCPRNG) InvGamma(ɑ, β float) float {
 	if ɑ > 0 && β > 0 {
@@ -712,7 +715,7 @@ func (rnd *LCPRNG) StudentsT(ν float) (t float) {
 		t = rnd.Gauss()
 		if !math.IsInf(ν, 1) {
 			ν /= 2
-			t *= math.Sqrt(rnd.InvGamma(ν, ν))
+			t *= math.Sqrt(ν / rnd.Gamma(ν))
 		}
 	}
 	return
@@ -765,13 +768,13 @@ func (rnd *LCPRNG) Dirichlet(ɑ ...float) (d array) {
 	g  = Γ(m + 1/2) / Γ(m)
 	p  = g² / m
 	μ² = Ω * p
-	σ² = Ω * (1 - p)
+	σ² = Ω - μ²
 */
 func (rnd *LCPRNG) Nakagami(m, Ω float) float {
 	if m < 0.5 || Ω <= 0 {
 		return 0
 	}
-	return math.Sqrt(Ω * rnd.Gamma(m, m))
+	return math.Sqrt(rnd.Gamma(m) * Ω / m)
 }
 
 // # Maxwell–Boltzmann distribution random variable (3 degrees of freedom).
@@ -1218,10 +1221,17 @@ func (rnd *LCPRNG) Target(dispersion float) (x, y float) {
 	return rnd.Circle(rnd.Rayleigh(dispersion))
 }
 
+// # Bi-normal distribution random pair.
+func (rnd *LCPRNG) BiNormal(μ1, μ2, σ1, σ2 float) (float, float) {
+	n1, n2 := rnd.Target(1)
+	return μ1 + n1*σ1, μ2 + n2*σ2
+}
+
 // # Beckmann distribution random variable.
-func (rnd *LCPRNG) Beckmann(μ1, σ1, μ2, σ2 float) float {
-	x, y := rnd.Target(1)
-	return math.Hypot(μ1+x*σ1, μ2+y*σ2)
+//
+// Diagonal length of a rectangle with normal random sides.
+func (rnd *LCPRNG) Beckmann(μ1, μ2, σ1, σ2 float) float {
+	return math.Hypot(rnd.BiNormal(μ1, μ2, σ1, σ2))
 }
 
 // # Rice distribution random variable.
@@ -1230,7 +1240,7 @@ func (rnd *LCPRNG) Rice(ν, σ float) float {
 		return rnd.Rayleigh(σ)
 	} else {
 		x, y := rnd.Circle(ν)
-		return rnd.Beckmann(x, σ, y, σ)
+		return rnd.Beckmann(x, y, σ, σ)
 	}
 }
 
@@ -1353,7 +1363,7 @@ func MulInv64(o octa) (r octa) {
 //
 //	n!
 func Factorial(n int) float {
-	return math.Gamma(float(n + 1))
+	return math.Gamma(float(n) + 1)
 }
 
 // # Falling factorial.
