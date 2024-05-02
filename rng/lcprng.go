@@ -1021,13 +1021,11 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 	var place, count, total int
 	var drive, speed list
 
-	dir := 1 // direction
-
 	race := func() bool {
 		return count < podium
 	}
 
-	laps := func() {
+	laps := func(dir int) {
 		for race() && len(drive) > 0 {
 			var i int
 			if total == 0 { // uniform
@@ -1062,7 +1060,7 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 				speed = append(speed, v)
 			}
 		}
-		laps()
+		laps(1)
 	}
 
 	if race() { // convoy body (uniform)
@@ -1071,7 +1069,7 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 				drive = append(drive, c)
 			}
 		}
-		laps()
+		laps(1)
 	}
 
 	if race() { // convoy tail
@@ -1082,8 +1080,8 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 				speed = append(speed, -v)
 			}
 		}
-		place, dir = cars-1, -1 // backwards
-		laps()
+		place = cars - 1
+		laps(-1) // backwards
 	}
 
 	return
