@@ -282,19 +282,24 @@ func (rnd *LCPRNG) Loaded(c *list) int {
 //	ProbabilityUp[i] = w[i]
 //	ProbabolityDown  = ∑ w
 func (rnd *LCPRNG) Weighted(w *list) int {
-	t := 0      // total mass (probabilityDown)
-	c := list{} // cumulative mass table
-	for _, m := range *w {
-		if m < 0 {
-			return -1 // no negative mass
+	r := len(*w) - 1
+	if r > 0 {
+		t := 0      // total mass (probabilityDown)
+		c := list{} // cumulative mass table
+		for _, m := range *w {
+			if m < 0 {
+				return -1 // no negative mass
+			}
+			t += m
+			c = append(c, t)
 		}
-		t += m
-		c = append(c, t)
-	}
-	if t == 0 {
-		return rnd.Index(&c) // random photon
+		if t == 0 {
+			return rnd.Index(&c) // random photon
+		} else {
+			return rnd.Loaded(&c)
+		}
 	} else {
-		return rnd.Loaded(&c)
+		return r
 	}
 }
 
@@ -1012,90 +1017,69 @@ func (rnd *LCPRNG) Podium(podium int, tuning *list) (stand list) { // not optimi
 		podium = cars
 	}
 
+	var run, velocity list
+
+	finish := func() int {
+		v := rnd.Weighted(&velocity)
+		c := run[v]
+		velocity = append(velocity[:v], velocity[v+1:]...)
+		run = append(run[:v], run[v+1:]...)
+		return c
+	}
+
 	stand = make(list, podium) // standing list
-	stop := make([]bool, cars) // is car stop
-	total := 0                 // total distance remaining
 	place := 0                 // battle for place
 	count := 0                 // number of cars who completed the race
-	finish := 0                // finish line
-	car := 0                   // current car
-	speed := 0                 // and speed
 	race := count < podium     // Gentlemen, start your engines!
 
 	if race { // convoy head (favorites)
-		for _, speed = range *tuning {
+		for car, speed := range *tuning {
 			if speed > 0 {
-				total += speed
+				run = append(run, car)
+				velocity = append(velocity, speed)
 			}
 		}
-		for (total != 0) && race {
-			finish = rnd.Choice(total)
-			for car, speed = range *tuning {
-				if !stop[car] && speed > 0 {
-					finish -= speed
-					if finish < 0 { // chequered flag
-						stop[car] = true // stop the car
-						total -= speed
-						stand[place] = car
-						place++
-						count++
-						race = count < podium
-						break
-					}
-				}
-			}
+		for len(run) > 0 && race {
+			car := finish()
+			stand[place] = car
+			place++
+			count++
+			race = count < podium
 		}
 	}
 
 	if race { // convoy body (uniform)
-		for _, speed = range *tuning {
+		for car, speed := range *tuning {
 			if speed == 0 {
-				total++
+				run = append(run, car)
 			}
 		}
-		for (total != 0) && race {
-			finish = rnd.Choice(total)
-			for car, speed = range *tuning {
-				if !stop[car] && speed == 0 {
-					finish--
-					if finish < 0 { // chequered flag
-						stop[car] = true // stop the car
-						total--
-						stand[place] = car
-						place++
-						count++
-						race = count < podium
-						break
-					}
-				}
-			}
+		for len(run) > 0 && race {
+			v := rnd.Index(&run)
+			car := run[v]
+			run = append(run[:v], run[v+1:]...)
+			stand[place] = car
+			place++
+			count++
+			race = count < podium
 		}
 	}
 
 	if race { // convoy tail
-		for _, speed = range *tuning {
+		for car, speed := range *tuning {
 			if speed < 0 {
-				total -= speed
+				run = append(run, car)
+				velocity = append(velocity, -speed)
 			}
 		}
 		place = cars // backwards
-		for (total != 0) && race {
-			finish = rnd.Choice(total)
-			for car, speed = range *tuning {
-				if !stop[car] {
-					finish += speed
-					if finish < 0 { // chequered flag
-						stop[car] = true // stop the car
-						total += speed
-						place--
-						if place < podium {
-							stand[place] = car
-							count++
-							race = count < podium
-						}
-						break
-					}
-				}
+		for len(run) > 0 && race {
+			car := finish()
+			place--
+			if place < podium {
+				stand[place] = car
+				count++
+				race = count < podium
 			}
 		}
 	}
