@@ -1019,37 +1019,37 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 
 	stand = make(list, podium)
 	var place, count, total int
-	var run, speed list
+	var drive, speed list
+
+	dir := 1 // direction
 
 	race := func() bool {
 		return count < podium
 	}
 
-	driving := func() bool {
-		return race() && len(run) > 0
-	}
-
-	finish := func() (car int) {
-		var i int
-		if total == 0 { // uniform
-			i = rnd.Index(&run)
-		} else { // weighted
-			if len(run) > 1 {
-				t := rnd.Choice(total)
-				for v := speed[0]; v < t; v += speed[i] {
-					i++
+	laps := func() {
+		for race() && len(drive) > 0 {
+			var i int
+			if total == 0 { // uniform
+				i = rnd.Index(&drive)
+			} else { // weighted
+				if len(drive) > 1 {
+					t := rnd.Choice(total)
+					for v := speed[0]; v < t; v += speed[i] {
+						i++
+					}
 				}
+				total -= speed[i]
+				speed = append(speed[:i], speed[i+1:]...)
 			}
-			total -= speed[i]
-			speed = append(speed[:i], speed[i+1:]...)
+			car := drive[i]
+			drive = append(drive[:i], drive[i+1:]...)
+			if place < podium {
+				stand[place] = car
+				count++
+			}
+			place += dir
 		}
-		car = run[i]
-		run = append(run[:i], run[i+1:]...)
-		if place < podium {
-			stand[place] = car
-			count++
-		}
-		return
 	}
 
 	// Gentlemen, start your engines!
@@ -1058,37 +1058,32 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 		for c, v := range *tuning {
 			if v > 0 {
 				total += v
-				run = append(run, c)
+				drive = append(drive, c)
 				speed = append(speed, v)
 			}
 		}
-		for ; driving(); place++ {
-			finish()
-		}
+		laps()
 	}
 
 	if race() { // convoy body (uniform)
 		for c, v := range *tuning {
 			if v == 0 {
-				run = append(run, c)
+				drive = append(drive, c)
 			}
 		}
-		for ; driving(); place++ {
-			finish()
-		}
+		laps()
 	}
 
 	if race() { // convoy tail
 		for c, v := range *tuning {
 			if v < 0 {
 				total -= v
-				run = append(run, c)
+				drive = append(drive, c)
 				speed = append(speed, -v)
 			}
 		}
-		for place = cars - 1; driving(); place-- { // backwards
-			finish()
-		}
+		place, dir = cars-1, -1 // backwards
+		laps()
 	}
 
 	return
