@@ -4,7 +4,6 @@ package rng
 
 import (
 	"crypto/rand"
-	"fmt"
 	"math"
 	"math/big"
 	"sync"
@@ -1555,8 +1554,4 @@ func (b *Babushka) Sum(x ...float) float {
 // # Initialization
 func init() {
 	WSOGMM.Randomize()
-	w := list{-100, -1, 1, 4, 2, 3, 0, 0}
-	for i := 1; i < 10; i++ {
-		fmt.Println(WSOGMM.Race(&w))
-	}
 }
