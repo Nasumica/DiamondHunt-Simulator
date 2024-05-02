@@ -1212,12 +1212,12 @@ func (rnd *LCPRNG) Circle(r float) (x, y float) {
 }
 
 // # Uniform random point in disc of radius r.
-func (rnd *LCPRNG) Disc(r float) (x, y float) {
+func (rnd *LCPRNG) Disc(r float) (float, float) {
 	return rnd.Circle(r * math.Sqrt(rnd.Random()))
 }
 
 // # Shooting on target bullet position.
-func (rnd *LCPRNG) Target(dispersion float) (x, y float) {
+func (rnd *LCPRNG) Target(dispersion float) (float, float) {
 	return rnd.Circle(rnd.Rayleigh(dispersion))
 }
 
