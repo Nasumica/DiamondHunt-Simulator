@@ -1017,6 +1017,11 @@ func (rnd *LCPRNG) Podium(podium int, tuning *list) (stand list) { // not optimi
 		podium = cars
 	}
 
+	stand = make(list, podium) // standing list
+	place := 0                 // battle for place
+	count := 0                 // number of cars who completed the race
+	race := count < podium     // Gentlemen, start your engines!
+
 	var run, velocity list
 
 	finish := func() int {
@@ -1026,11 +1031,6 @@ func (rnd *LCPRNG) Podium(podium int, tuning *list) (stand list) { // not optimi
 		run = append(run[:v], run[v+1:]...)
 		return c
 	}
-
-	stand = make(list, podium) // standing list
-	place := 0                 // battle for place
-	count := 0                 // number of cars who completed the race
-	race := count < podium     // Gentlemen, start your engines!
 
 	if race { // convoy head (favorites)
 		for car, speed := range *tuning {
