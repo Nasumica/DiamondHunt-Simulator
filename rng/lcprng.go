@@ -1025,13 +1025,18 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 		return count < podium
 	}
 
+	driving := func() bool {
+		return race() && len(run) > 0
+	}
+
 	finish := func() (car int) {
 		var i int
 		if total == 0 { // uniform
 			i = rnd.Index(&run)
 		} else { // weighted
 			if len(run) > 1 {
-				for t, v := rnd.Choice(total), speed[0]; v < t; v += speed[i] {
+				t := rnd.Choice(total)
+				for v := speed[0]; v < t; v += speed[i] {
 					i++
 				}
 			}
@@ -1040,6 +1045,10 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 		}
 		car = run[i]
 		run = append(run[:i], run[i+1:]...)
+		if place < podium {
+			stand[place] = car
+			count++
+		}
 		return
 	}
 
@@ -1053,11 +1062,8 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 				speed = append(speed, v)
 			}
 		}
-		for len(run) > 0 && race() {
-			car := finish()
-			stand[place] = car
-			place++
-			count++
+		for ; driving(); place++ {
+			finish()
 		}
 	}
 
@@ -1067,11 +1073,8 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 				run = append(run, c)
 			}
 		}
-		for len(run) > 0 && race() {
-			car := finish()
-			stand[place] = car
-			place++
-			count++
+		for ; driving(); place++ {
+			finish()
 		}
 	}
 
@@ -1083,14 +1086,8 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 				speed = append(speed, -v)
 			}
 		}
-		place = cars // backwards
-		for len(run) > 0 && race() {
-			car := finish()
-			place--
-			if place < podium {
-				stand[place] = car
-				count++
-			}
+		for place = cars - 1; driving(); place-- { // backwards
+			finish()
 		}
 	}
 
