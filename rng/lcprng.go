@@ -372,7 +372,7 @@ func (rnd *LCPRNG) Binomial(n int, p float) (b int) {
 		x *= p           // mean
 		q *= x           // variance
 		q = math.Sqrt(q) // standard deviation
-		for b = -1; (b < 0) || (b > n); {
+		for b = rnd.Discrete(x, q); (b < 0) || (b > n); {
 			b = rnd.Discrete(x, q)
 		}
 	} else {
@@ -1007,7 +1007,7 @@ func (rnd *LCPRNG) Sort(x *list) {
 //	k = podium
 //
 // Calculated by race simulation standing list.
-func (rnd *LCPRNG) Podium(podium int, tuning *list) (stand list) { // not optimised, tested
+func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimised, tested
 	cars := len(*tuning) // number of cars
 
 	// censor podium
@@ -1098,8 +1098,8 @@ func (rnd *LCPRNG) Podium(podium int, tuning *list) (stand list) { // not optimi
 }
 
 // # Weighted random permutation.
-func (rnd *LCPRNG) Race(tuning *list) list {
-	return rnd.Podium(len(*tuning), tuning)
+func (rnd *LCPRNG) Convoy(tuning *list) list {
+	return rnd.Race(len(*tuning), tuning)
 }
 
 // # Random forest.
