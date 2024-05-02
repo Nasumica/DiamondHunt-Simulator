@@ -4,6 +4,7 @@ package rng
 
 import (
 	"crypto/rand"
+	"fmt"
 	"math"
 	"math/big"
 	"sync"
@@ -1017,69 +1018,79 @@ func (rnd *LCPRNG) Podium(podium int, tuning *list) (stand list) { // not optimi
 		podium = cars
 	}
 
-	stand = make(list, podium) // standing list
-	place := 0                 // battle for place
-	count := 0                 // number of cars who completed the race
-	race := count < podium     // Gentlemen, start your engines!
+	stand = make(list, podium)
+	var place, count, total int
+	var run, speed list
 
-	var run, velocity list
-
-	finish := func() int {
-		v := rnd.Weighted(&velocity)
-		c := run[v]
-		velocity = append(velocity[:v], velocity[v+1:]...)
-		run = append(run[:v], run[v+1:]...)
-		return c
+	race := func() bool {
+		return count < podium
 	}
 
-	if race { // convoy head (favorites)
-		for car, speed := range *tuning {
-			if speed > 0 {
-				run = append(run, car)
-				velocity = append(velocity, speed)
+	finish := func() (car int) {
+		var i int
+		if total == 0 { // uniform
+			i = rnd.Index(&run)
+		} else { // weighted
+			if len(run) > 1 {
+				for t, v := rnd.Choice(total), speed[0]; v < t; v += speed[i] {
+					i++
+				}
+			}
+			total -= speed[i]
+			speed = append(speed[:i], speed[i+1:]...)
+		}
+		car = run[i]
+		run = append(run[:i], run[i+1:]...)
+		return
+	}
+
+	// Gentlemen, start your engines!
+
+	if race() { // convoy head (favorites)
+		for c, v := range *tuning {
+			if v > 0 {
+				total += v
+				run = append(run, c)
+				speed = append(speed, v)
 			}
 		}
-		for len(run) > 0 && race {
+		for len(run) > 0 && race() {
 			car := finish()
 			stand[place] = car
 			place++
 			count++
-			race = count < podium
 		}
 	}
 
-	if race { // convoy body (uniform)
-		for car, speed := range *tuning {
-			if speed == 0 {
-				run = append(run, car)
+	if race() { // convoy body (uniform)
+		for c, v := range *tuning {
+			if v == 0 {
+				run = append(run, c)
 			}
 		}
-		for len(run) > 0 && race {
-			v := rnd.Index(&run)
-			car := run[v]
-			run = append(run[:v], run[v+1:]...)
+		for len(run) > 0 && race() {
+			car := finish()
 			stand[place] = car
 			place++
 			count++
-			race = count < podium
 		}
 	}
 
-	if race { // convoy tail
-		for car, speed := range *tuning {
-			if speed < 0 {
-				run = append(run, car)
-				velocity = append(velocity, -speed)
+	if race() { // convoy tail
+		for c, v := range *tuning {
+			if v < 0 {
+				total -= v
+				run = append(run, c)
+				speed = append(speed, -v)
 			}
 		}
 		place = cars // backwards
-		for len(run) > 0 && race {
+		for len(run) > 0 && race() {
 			car := finish()
 			place--
 			if place < podium {
 				stand[place] = car
 				count++
-				race = count < podium
 			}
 		}
 	}
@@ -1544,4 +1555,8 @@ func (b *Babushka) Sum(x ...float) float {
 // # Initialization
 func init() {
 	WSOGMM.Randomize()
+	w := list{-100, -1, 1, 4, 2, 3, 0, 0}
+	for i := 1; i < 10; i++ {
+		fmt.Println(WSOGMM.Race(&w))
+	}
 }
