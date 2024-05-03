@@ -1036,43 +1036,40 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 
 	// Gentlemen, start your engines!
 
-	laps := func(drive *list, total int, dir int) {
-		tune := func(car int) int {
-			t := (*tuning)[(*drive)[car]]
-			if t < 0 {
-				t = -t
-			}
-			return t
+	race := func(car *list, tune int, dir int) {
+		speed := func(i int) int {
+			return (*tuning)[(*car)[i]] * dir
 		}
-		for count < podium && len(*drive) > 0 {
+		for l := len(*car); count < podium && l > 0; l-- {
 			i := 0
-			if total == 0 { // uniform
-				i = rnd.Index(drive)
+			if tune == 0 { // uniform
+				i = rnd.Index(car)
 			} else { // weighted
-				t := tune(i)
-				if len(*drive) > 1 {
-					for n := rnd.Choice(total) - t; n >= 0; n -= t {
+				v := speed(i)
+				if l > 1 {
+					t := rnd.Choice(tune)
+					for t -= v; t >= 0; t -= v {
 						i++
-						t = tune(i)
+						v = speed(i)
 					}
 				}
-				total -= t
+				tune -= v
 			}
-			c := (*drive)[i]
-			d := append((*drive)[:i], (*drive)[i+1:]...)
-			drive = &d
+			c := (*car)[i]
 			if place < podium {
 				stand[place] = c
 				count++
 			}
 			place += dir
+			d := append((*car)[:i], (*car)[i+1:]...)
+			car = &d
 		}
 	}
 
-	laps(&head, pos, 1)
-	laps(&body, 0, 1)
-	place = cars - 1 // backwards
-	laps(&tail, neg, -1)
+	race(&head, pos, 1)  // convoy head
+	race(&body, 0, 1)    // convoy body
+	place = cars - 1     // backwards
+	race(&tail, neg, -1) // convoy tail
 
 	return
 }
