@@ -1009,20 +1009,17 @@ func (rnd *LCPRNG) Sort(x *list) {
 // Calculated by race simulation standing list.
 func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimised, tested
 	cars := len(*tuning) // number of cars
-
-	// Censor podium
 	if podium < 0 {
 		podium = 0
 	} else if podium > cars {
 		podium = cars
 	}
-
 	stand = make(list, podium)
+
+	// Gentlemen, start your engines!
 	var place, count int
 	var pos, neg int
 	var head, body, tail list
-
-	// Gentlemen, start your engines!
 	for c, v := range *tuning {
 		if v > 0 {
 			pos += v
