@@ -1036,7 +1036,7 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 		speed := func(i int) int {
 			return (*tuning)[(*car)[i]] * dir
 		}
-		for l := len(*car); count < podium && l > 0; {
+		for l := len(*car); l > 0 && count < podium; {
 			i := 0
 			if l > 1 {
 				if tune == 0 { // uniform
