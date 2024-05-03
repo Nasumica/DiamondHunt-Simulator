@@ -1038,7 +1038,7 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 		speed := func(i int) int {
 			return (*tuning)[(*car)[i]] * dir
 		}
-		for l := len(*car); count < podium && l > 0; l-- {
+		for l := len(*car); count < podium && l > 0; {
 			i := 0
 			if tune == 0 { // uniform
 				i = rnd.Index(car)
@@ -1059,8 +1059,9 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 				count++
 			}
 			place += dir
-			d := append((*car)[:i], (*car)[i+1:]...)
-			car = &d
+			l--
+			copy((*car)[i:], (*car)[i+1:])
+			(*car) = (*car)[:l]
 		}
 	}
 
