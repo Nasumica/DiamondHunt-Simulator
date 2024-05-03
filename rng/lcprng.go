@@ -1022,11 +1022,9 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 	var head, body, tail list
 	for c, v := range *tuning {
 		if v > 0 {
-			pos += v
-			head = append(head, c)
+			head, pos = append(head, c), pos+v
 		} else if v < 0 {
-			neg -= v
-			tail = append(tail, c)
+			tail, neg = append(tail, c), neg-v
 		} else {
 			body = append(body, c)
 		}
@@ -1063,8 +1061,8 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 		}
 	}
 
-	race(&head, pos, 1)  // convoy head
-	race(&body, 0, 1)    // convoy body
+	race(&head, pos, 1)  // convoy head (favorites)
+	race(&body, 0, 1)    // convoy body (uniform)
 	place = cars - 1     // backwards
 	race(&tail, neg, -1) // convoy tail
 
