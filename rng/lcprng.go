@@ -1010,7 +1010,7 @@ func (rnd *LCPRNG) Sort(x *list) {
 func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimised, tested
 	cars := len(*tuning) // number of cars
 
-	// censor podium
+	// Censor podium
 	if podium < 0 {
 		podium = 0
 	} else if podium > cars {
@@ -1022,6 +1022,7 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 	var pos, neg int
 	var head, body, tail list
 
+	// Gentlemen, start your engines!
 	for c, v := range *tuning {
 		if v > 0 {
 			pos += v
@@ -1034,7 +1035,7 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 		}
 	}
 
-	// Gentlemen, start your engines!
+	// ▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀
 
 	race := func(car *list, tune, dir int) {
 		speed := func(i int) int {
