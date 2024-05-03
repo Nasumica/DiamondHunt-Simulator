@@ -1466,7 +1466,8 @@ func SpigotPi(n int) (π []byte) {
 			for j, k := b, o; j > 0; k -= 2 {
 				j--
 				s = 10*m[j] + c
-				c, m[j] = s/k*j, s%k
+				c, m[j] = s/k, s%k
+				c *= j
 			}
 			m[0] = s % 10
 			d := byte(s / 10)
