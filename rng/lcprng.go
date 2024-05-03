@@ -1015,7 +1015,6 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 		podium = cars
 	}
 
-	// Gentlemen, start your engines!
 	stand = make(list, podium)
 	var place, count int
 	var pos, neg int
@@ -1029,6 +1028,8 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 			body = append(body, c)
 		}
 	}
+
+	// Gentlemen, start your engines!
 
 	// ▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀
 
