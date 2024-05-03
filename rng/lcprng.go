@@ -1022,9 +1022,19 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 	var pos, neg int
 	var head, body, tail list
 
-	race := func() bool {
-		return count < podium
+	for c, v := range *tuning {
+		if v > 0 {
+			pos += v
+			head = append(head, c)
+		} else if v < 0 {
+			neg -= v
+			tail = append(tail, c)
+		} else {
+			body = append(body, c)
+		}
 	}
+
+	// Gentlemen, start your engines!
 
 	laps := func(drive *list, total int, dir int) {
 		tune := func(car int) int {
@@ -1034,7 +1044,7 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 			}
 			return t
 		}
-		for race() && len(*drive) > 0 {
+		for count < podium && len(*drive) > 0 {
 			i := 0
 			if total == 0 { // uniform
 				i = rnd.Index(drive)
@@ -1058,20 +1068,6 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 			place += dir
 		}
 	}
-
-	for c, v := range *tuning {
-		if v > 0 {
-			pos += v
-			head = append(head, c)
-		} else if v < 0 {
-			neg -= v
-			tail = append(tail, c)
-		} else {
-			body = append(body, c)
-		}
-	}
-
-	// Gentlemen, start your engines!
 
 	laps(&head, pos, 1)
 	laps(&body, 0, 1)
