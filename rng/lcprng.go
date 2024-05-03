@@ -1019,26 +1019,34 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 
 	stand = make(list, podium)
 	var place, count, total int
-	var drive, speed list
+	var drive list
 
 	race := func() bool {
 		return count < podium
 	}
 
+	tune := func(car int) int {
+		t := (*tuning)[drive[car]]
+		if t < 0 {
+			t = -t
+		}
+		return t
+	}
+
 	laps := func(dir int) {
 		for race() && len(drive) > 0 {
-			var i int
+			i := 0
 			if total == 0 { // uniform
 				i = rnd.Index(&drive)
 			} else { // weighted
+				t := tune(i)
 				if len(drive) > 1 {
-					t := rnd.Choice(total)
-					for v := speed[0]; v < t; v += speed[i] {
+					for n := rnd.Choice(total) - t; n >= 0; n -= t {
 						i++
+						t = tune(i)
 					}
 				}
-				total -= speed[i]
-				speed = append(speed[:i], speed[i+1:]...)
+				total -= t
 			}
 			car := drive[i]
 			drive = append(drive[:i], drive[i+1:]...)
@@ -1057,7 +1065,6 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 			if v > 0 {
 				total += v
 				drive = append(drive, c)
-				speed = append(speed, v)
 			}
 		}
 		laps(1)
@@ -1077,7 +1084,6 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 			if v < 0 {
 				total -= v
 				drive = append(drive, c)
-				speed = append(speed, -v)
 			}
 		}
 		place = cars - 1
