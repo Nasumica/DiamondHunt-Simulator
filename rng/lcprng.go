@@ -1014,9 +1014,9 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 	} else if podium > cars {
 		podium = cars
 	}
-	stand = make(list, podium)
 
 	// Gentlemen, start your engines!
+	stand = make(list, podium)
 	var place, count int
 	var pos, neg int
 	var head, body, tail list
@@ -1045,10 +1045,11 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 					i = rnd.Choice(l)
 				} else { // weighted
 					v := speed(i)
-					t := rnd.Choice(tune)
-					for t -= v; t >= 0; t -= v {
+					t := rnd.Choice(tune) - v
+					for t >= 0 {
 						i++
 						v = speed(i)
+						t -= v
 					}
 					tune -= v
 				}
