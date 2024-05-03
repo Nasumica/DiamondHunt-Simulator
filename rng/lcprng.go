@@ -1519,7 +1519,7 @@ func (b *Babushka) Add(x float) {
 	b.ccs += b.cc
 }
 
-// # Σ x.
+// # Σ x (with correction).
 func (b *Babushka) Total(x ...float) float {
 	for _, a := range x {
 		b.Add(a)
@@ -1527,7 +1527,7 @@ func (b *Babushka) Total(x ...float) float {
 	return b.sum + b.cs + b.ccs
 }
 
-// # Σ x (without correction).
+// # Σ x.
 func (b *Babushka) Sum(x ...float) float {
 	for _, a := range x {
 		b.Add(a)
