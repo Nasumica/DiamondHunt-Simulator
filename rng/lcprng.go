@@ -1036,7 +1036,7 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 
 	// Gentlemen, start your engines!
 
-	race := func(car *list, tune int, dir int) {
+	race := func(car *list, tune, dir int) {
 		speed := func(i int) int {
 			return (*tuning)[(*car)[i]] * dir
 		}
