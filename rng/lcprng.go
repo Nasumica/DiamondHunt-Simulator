@@ -1018,29 +1018,29 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 	}
 
 	stand = make(list, podium)
-	var place, count, total int
-	var drive list
+	var place, count int
+	var pos, neg int
+	var head, body, tail list
 
 	race := func() bool {
 		return count < podium
 	}
 
-	tune := func(car int) int {
-		t := (*tuning)[drive[car]]
-		if t < 0 {
-			t = -t
+	laps := func(drive *list, total int, dir int) {
+		tune := func(car int) int {
+			t := (*tuning)[(*drive)[car]]
+			if t < 0 {
+				t = -t
+			}
+			return t
 		}
-		return t
-	}
-
-	laps := func(dir int) {
-		for race() && len(drive) > 0 {
+		for race() && len(*drive) > 0 {
 			i := 0
 			if total == 0 { // uniform
-				i = rnd.Index(&drive)
+				i = rnd.Index(drive)
 			} else { // weighted
 				t := tune(i)
-				if len(drive) > 1 {
+				if len(*drive) > 1 {
 					for n := rnd.Choice(total) - t; n >= 0; n -= t {
 						i++
 						t = tune(i)
@@ -1048,47 +1048,35 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 				}
 				total -= t
 			}
-			car := drive[i]
-			drive = append(drive[:i], drive[i+1:]...)
+			c := (*drive)[i]
+			d := append((*drive)[:i], (*drive)[i+1:]...)
+			drive = &d
 			if place < podium {
-				stand[place] = car
+				stand[place] = c
 				count++
 			}
 			place += dir
 		}
 	}
 
+	for c, v := range *tuning {
+		if v > 0 {
+			pos += v
+			head = append(head, c)
+		} else if v < 0 {
+			neg -= v
+			tail = append(tail, c)
+		} else {
+			body = append(body, c)
+		}
+	}
+
 	// Gentlemen, start your engines!
 
-	if race() { // convoy head (favorites)
-		for c, v := range *tuning {
-			if v > 0 {
-				total += v
-				drive = append(drive, c)
-			}
-		}
-		laps(1)
-	}
-
-	if race() { // convoy body (uniform)
-		for c, v := range *tuning {
-			if v == 0 {
-				drive = append(drive, c)
-			}
-		}
-		laps(1)
-	}
-
-	if race() { // convoy tail
-		for c, v := range *tuning {
-			if v < 0 {
-				total -= v
-				drive = append(drive, c)
-			}
-		}
-		place = cars - 1
-		laps(-1) // backwards
-	}
+	laps(&head, pos, 1)
+	laps(&body, 0, 1)
+	place = cars - 1 // backwards
+	laps(&tail, neg, -1)
 
 	return
 }
