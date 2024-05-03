@@ -1044,19 +1044,16 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 				if tune == 0 { // uniform
 					i = rnd.Choice(l)
 				} else { // weighted
-					v := speed(i)
-					t := rnd.Choice(tune) - v
-					for t >= 0 {
+					s, v := rnd.Choice(tune), 0
+					for i = -1; s >= 0; s -= v {
 						i++
 						v = speed(i)
-						t -= v
 					}
 					tune -= v
 				}
 			}
-			c := (*car)[i]
 			if place < podium {
-				stand[place] = c
+				stand[place] = (*car)[i]
 				count++
 			}
 			place += dir
