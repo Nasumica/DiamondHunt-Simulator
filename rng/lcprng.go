@@ -887,7 +887,7 @@ func (rnd *LCPRNG) Benford(m, n int) (b int) {
 			b = m
 		} else {
 			b = int(math.Exp(rnd.Range(math.Log(float(m)), math.Log(float(n)+1))))
-			b = Censor(m, b, n)
+			b = rnd.Censor(m, b, n)
 		}
 	}
 	return
@@ -949,7 +949,6 @@ func (rnd *LCPRNG) Sort(x *list) {
 
 	qsort := func() { // Quick Sort by Sir C. A. R. Hoare (1960)
 		l, r = q.l, q.r
-		// p = (*x)[(l+r)/2] // middle pivot
 		p = (*x)[rnd.Int(l, r)] // random pivot
 		for l <= r {
 			for (*x)[l] < p {
@@ -1000,9 +999,9 @@ func (rnd *LCPRNG) Sort(x *list) {
 //
 // Calculated by race simulation standing list.
 func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimised, tested
-	cars := len(*tuning)             // number of cars
-	podium = Censor(0, podium, cars) // check podium
-	stand = make(list, podium)       // standing list
+	cars := len(*tuning)                 // number of cars
+	podium = rnd.Censor(0, podium, cars) // check podium
+	stand = make(list, podium)           // standing list
 	var place, count int
 	var pos, neg int
 	var head, body, tail list
@@ -1296,7 +1295,7 @@ func (rnd *LCPRNG) Lucky6() list {
 }
 
 // # Censor n in range [min, nax].
-func Censor(min, n, max int) int {
+func (rnd *LCPRNG) Censor(min, n, max int) int {
 	if min > max {
 		min, max = max, min
 	}
