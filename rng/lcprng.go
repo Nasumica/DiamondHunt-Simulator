@@ -1295,6 +1295,20 @@ func (rnd *LCPRNG) Lucky6() list {
 	return rnd.Mixer(49)
 }
 
+// # Censor n in range [min, nax].
+func Censor(min, n, max int) int {
+	if min > max {
+		min, max = max, min
+	}
+	if n < min {
+		return min
+	} else if n > max {
+		return max
+	} else {
+		return n
+	}
+}
+
 // # 2-adic multiplicative inverse.
 //
 //	o ✶ r = 1 (mod 2⁶⁴)
@@ -1312,20 +1326,6 @@ func MulInv64(o octa) (r octa) {
 		}
 	}
 	return
-}
-
-// # Censor n in range [min, nax].
-func Censor(min, n, max int) int {
-	if min > max {
-		min, max = max, min
-	}
-	if n < min {
-		return min
-	} else if n > max {
-		return max
-	} else {
-		return n
-	}
 }
 
 // # Facorial.
