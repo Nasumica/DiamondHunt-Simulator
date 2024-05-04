@@ -871,11 +871,7 @@ func (rnd *LCPRNG) Logarithmic(a, b float) (l float) {
 			l = a
 		} else {
 			l = math.Exp(rnd.Range(math.Log(a), math.Log(b)))
-			if l < a {
-				l = a
-			} else if l > b {
-				l = b
-			}
+			l = math.Min(b, math.Max(a, l))
 		}
 	}
 	return
@@ -891,11 +887,7 @@ func (rnd *LCPRNG) Benford(m, n int) (b int) {
 			b = m
 		} else {
 			b = int(math.Exp(rnd.Range(math.Log(float(m)), math.Log(float(n)+1))))
-			if b < m {
-				b = m
-			} else if b > n {
-				b = n
-			}
+			b = Censor(m, b, n)
 		}
 	}
 	return
@@ -1008,23 +1000,20 @@ func (rnd *LCPRNG) Sort(x *list) {
 //
 // Calculated by race simulation standing list.
 func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimised, tested
-	cars := len(*tuning) // number of cars
-	if podium < 0 {
-		podium = 0
-	} else if podium > cars {
-		podium = cars
-	}
-
-	stand = make(list, podium)
+	cars := len(*tuning)             // number of cars
+	podium = Censor(0, podium, cars) // check podium
+	stand = make(list, podium)       // standing list
 	var place, count int
 	var pos, neg int
 	var head, body, tail list
-	for c, v := range *tuning {
-		if v > 0 {
-			head, pos = append(head, c), pos+v
-		} else if v < 0 {
-			tail, neg = append(tail, c), neg-v
-		} else {
+
+	for c, t := range *tuning {
+		switch {
+		case t > 0:
+			head, pos = append(head, c), pos+t
+		case t < 0:
+			tail, neg = append(tail, c), neg-t
+		default:
 			body = append(body, c)
 		}
 	}
@@ -1040,12 +1029,12 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 				if tune == 0 { // uniform
 					i = rnd.Choice(l)
 				} else { // weighted
-					s, v := rnd.Choice(tune), 0
-					for i = -1; s >= 0; s -= v {
+					n, t := rnd.Choice(tune), 0
+					for i = -1; n >= 0; n -= t {
 						i++
-						v = (*tuning)[(*car)[i]] * dir
+						t = (*tuning)[(*car)[i]] * dir
 					}
-					tune -= v
+					tune -= t
 				}
 			}
 			if place < podium {
@@ -1325,6 +1314,20 @@ func MulInv64(o octa) (r octa) {
 	return
 }
 
+// # Censor n in range [min, nax].
+func Censor(min, n, max int) int {
+	if min > max {
+		min, max = max, min
+	}
+	if n < min {
+		return min
+	} else if n > max {
+		return max
+	} else {
+		return n
+	}
+}
+
 // # Facorial.
 //
 //	n!
@@ -1449,6 +1452,22 @@ func Ludus(sides int, dice ...int) (total, index int, prob float) {
 		}
 	}
 	return
+}
+
+// # Race order probability.
+func RaceDist(order, weight list) (float64, *big.Rat) {
+	s := 0
+	for _, w := range weight {
+		s += w
+	}
+	r := big.NewRat(1, 1)
+	for _, o := range order {
+		w := weight[o]
+		r = r.Mul(r, big.NewRat(int64(w), int64(s)))
+		s -= w
+	}
+	p, _ := r.Float64()
+	return p, r
 }
 
 // # Calculate n digits of π.
