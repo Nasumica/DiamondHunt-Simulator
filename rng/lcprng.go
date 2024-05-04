@@ -1036,7 +1036,7 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 					tune -= t
 				}
 			}
-			if place < podium {
+			if place < podium { // chequered flag
 				stand[place] = (*car)[i]
 				count++
 			}
