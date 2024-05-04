@@ -1002,17 +1002,17 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 	cars := len(*tuning)                 // number of cars
 	podium = rnd.Censor(0, podium, cars) // check podium
 	stand = make(list, podium)           // standing list
-	var place, count int
-	var pos, neg int
-	var head, body, tail list
+	place, count := 0, 0                 // current place and count
+	pos, neg := 0, 0                     // positive and negative total tunings
+	var head, body, tail list            // cars list
 
-	for c, t := range *tuning {
+	for c, t := range *tuning { // prepae race
 		switch {
-		case t > 0:
+		case t > 0: // good tuning
 			head, pos = append(head, c), pos+t
-		case t < 0:
+		case t < 0: // bad tuning
 			tail, neg = append(tail, c), neg-t
-		default:
+		default: // no tuning
 			body = append(body, c)
 		}
 	}
@@ -1294,17 +1294,19 @@ func (rnd *LCPRNG) Lucky6() list {
 	return rnd.Mixer(49)
 }
 
-// # Censor n in range [min, nax].
-func (rnd *LCPRNG) Censor(min, n, max int) int {
+// # Censor value to range [min, nax].
+//
+// Used to censor other distributions.
+func (rnd *LCPRNG) Censor(min, value, max int) int {
 	if min > max {
 		min, max = max, min
 	}
-	if n < min {
+	if value < min {
 		return min
-	} else if n > max {
+	} else if value > max {
 		return max
 	} else {
-		return n
+		return value
 	}
 }
 
