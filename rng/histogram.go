@@ -17,10 +17,12 @@ type Histogram struct {
 	y1, y2     float64
 	dx, dy, k  float
 	f          []func(x float64) float64
+	RNG        LCPRNG
 }
 
 func (h *Histogram) Reset(f ...func(x float64) float64) {
 	h.Calc.Reset()
+	h.RNG.Randomize()
 	h.Data = map[int]int{}
 	h.f = f
 	h.Scale(1, 1)
@@ -81,8 +83,8 @@ func (h *Histogram) Graph(width int, limit int, cumul bool) {
 		p = t
 	}
 	s := p / float64(width)
-	lo := WSOGMM.Censor(h.Min, h.Mode-limit, h.Max)
-	hi := WSOGMM.Censor(h.Min, h.Mode+limit, h.Max)
+	lo := h.RNG.Censor(h.Min, h.Mode-limit, h.Max)
+	hi := h.RNG.Censor(h.Min, h.Mode+limit, h.Max)
 	c := 0.
 	for i, d := range h.Data {
 		if i < lo {
@@ -116,18 +118,16 @@ func (h *Histogram) Graph(width int, limit int, cumul bool) {
 }
 
 func HistTest() {
-	var rnd LCPRNG
-	rnd.Randomize()
 	var h Histogram
 	h.Reset()
 	h.Scale(1, 4)
 	for h.Calc.Cnt < 1000000 {
-		x := rnd.Gamma(3.24)
+		x := h.RNG.Gamma(3.24)
 		h.Add(float64(x))
 	}
 	h.Graph(100, 100, false)
 }
 
 func init() {
-
+	// HistTest()
 }
