@@ -1,14 +1,15 @@
 package rng
 
+// Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
+
 import (
 	"fmt"
 	"math"
 	"strings"
 )
 
-// Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
-
 type Histogram struct {
+	Title      string
 	Calc       StatCalc
 	Data       map[int]int
 	Min, Max   int
@@ -78,6 +79,17 @@ func (h *Histogram) Add(x float64) {
 }
 
 func (h *Histogram) Graph(width int, limit int, cumul bool) {
+	iif := func(c bool, t, f string) string {
+		if c {
+			return t
+		} else {
+			return f
+		}
+	}
+	fmt.Println()
+	df := iif(cumul, "PDF", "CDF")
+	fmt.Printf("%s %s:   n = %d   [%.2f, %.2f]   μ = %.5f  σ = %.5f\n",
+		df, h.Title, h.Calc.Cnt, h.Calc.Min, h.Calc.Max, h.Calc.Avg, h.Calc.Dev)
 	p, t := float64(h.Peak), float64(h.Calc.Cnt)
 	if cumul {
 		p = t
@@ -99,35 +111,78 @@ func (h *Histogram) Graph(width int, limit int, cumul bool) {
 			n = c
 		}
 		w := int(math.Round(n / s))
-		b := strings.Repeat("─", w)
+		b := strings.Repeat("-", w)
 		y := n / t
 		if !cumul {
 			y *= h.k
 		}
 		x := h.X(float64(i))
-		fmt.Printf("%9.2f  ", x)
-		if d == h.Peak {
-			fmt.Print("►")
-		} else {
-			fmt.Print(" ")
-		}
-		fmt.Printf("│%s  %.2f%%  %.0f", b, y*100, n)
+		fmt.Printf("%9.2f  %s", x, iif(d == h.Peak, "►", " "))
+		fmt.Printf("%s%s  %.2f%%  %.0f", iif(x == 0, "┤", "│"), b, y*100, n)
 		fmt.Println()
 	}
-	fmt.Printf("μ = %.5f  σ = %.5f\n", h.Calc.Avg, h.Calc.Dev)
 }
 
-func HistTest() {
+func HistTest(n int) {
 	var h Histogram
-	h.Reset()
-	h.Scale(1, 4)
-	for h.Calc.Cnt < 1000000 {
-		x := h.RNG.Gamma(3.24)
-		h.Add(float64(x))
+	{
+		h.Reset()
+		h.Scale(1, 4)
+		ɑ := 3.25
+		h.Title = fmt.Sprintf("Gamma distribution (ɑ = %v)", ɑ)
+		for h.Calc.Cnt < n {
+			x := h.RNG.Gamma(ɑ)
+			h.Add(float64(x))
+		}
+		h.Graph(100, 50, false)
 	}
-	h.Graph(100, 100, false)
+	{
+		h.Reset()
+		h.Scale(1, 1)
+		ƛ := 3.61
+		h.Title = fmt.Sprintf("Poisson distribution (ƛ = %v)", ƛ)
+		for h.Calc.Cnt < n {
+			x := h.RNG.Poisson(ƛ)
+			h.Add(float64(x))
+		}
+		h.Graph(100, 50, false)
+	}
+	{
+		h.Reset()
+		h.Scale(1, 10)
+		ξ, ω, ɑ := 0., 1., 4.
+		h.Title = fmt.Sprintf("Skew-normal distribution (ξ = %v, ω = %v, ɑ = %v)", ξ, ω, ɑ)
+		for h.Calc.Cnt < n {
+			x := h.RNG.SkewNormal(ξ, ω, ɑ)
+			h.Add(float64(x))
+		}
+		h.Graph(100, 50, false)
+	}
+	{
+		h.Reset(math.Floor)
+		h.Scale(1, 5)
+		ƛ := 2.71
+		h.Title = fmt.Sprintf("Exponential distribution (ƛ = %v)", ƛ)
+		for h.Calc.Cnt < n {
+			x := h.RNG.Exponential(ƛ)
+			h.Add(float64(x))
+		}
+		h.Graph(100, 100, false)
+		h.Graph(100, 100, true)
+	}
+	{
+		h.Reset()
+		h.Scale(1, 1)
+		ɑ1, ɑ2 := 0.2, 1.9
+		h.Title = fmt.Sprintf("Hermite distribution (ɑ1 = %v, ɑ2  = %v)", ɑ1, ɑ2)
+		for h.Calc.Cnt < n {
+			x := h.RNG.Hermite(ɑ1, ɑ2)
+			h.Add(float64(x))
+		}
+		h.Graph(100, 100, false)
+	}
 }
 
 func init() {
-	// HistTest()
+	//	HistTest(1 * 1000 * 1000)
 }
