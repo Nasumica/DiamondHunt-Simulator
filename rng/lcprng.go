@@ -1042,8 +1042,8 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 			}
 			place += dir
 			l--
-			copy((*car)[i:], (*car)[i+1:])
-			(*car) = (*car)[:l]
+			copy((*car)[i:], (*car)[i+1:]) // remove car
+			(*car) = (*car)[:l]            // from list
 		}
 	}
 
