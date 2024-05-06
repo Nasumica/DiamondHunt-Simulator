@@ -143,7 +143,7 @@ func (h *Histogram) Graph(width int, limit int, cumul bool, nozero ...bool) {
 			}
 			v := trim(fmt.Sprintf("%.2f", 100*y), "") + "%"
 			x := h.X(float64(i))
-			u := trim(fmt.Sprintf("%9.2f", x), " ")
+			u := trim(fmt.Sprintf("%10.3f", x), " ")
 			fmt.Printf("%v  %s", u, iif(d == h.Peak, "►", " "))
 			fmt.Printf("%s%s  %v  %.0f", iif(x == 0, "┤", "│"), b, v, n)
 			fmt.Println()
@@ -172,14 +172,20 @@ func HistTest(sample int) {
 		h.Graph(100, 30, false)
 	}
 	if true {
-		h.Reset()
-		ƛ := par(2, 4)
-		h.Title = fmt.Sprintf("Poisson distribution (ƛ = %v)", ƛ)
+		ɑ := par(0.4, 3.5)
+		β := par(0.4, 3.5)
+		if ɑ > β {
+			h.Reset(math.Ceil)
+		} else {
+			h.Reset(math.Floor)
+		}
+		h.Scale(1, 25)
+		h.Title = fmt.Sprintf("Beta distribution (ɑ = %v, β = %v)", ɑ, β)
 		for h.Calc.Cnt < sample {
-			x := h.RNG.Poisson(ƛ)
+			x := h.RNG.Beta(ɑ, β)
 			h.Add(float64(x))
 		}
-		h.Graph(100, 50, false)
+		h.Graph(100, 100, false)
 	}
 	if true {
 		h.Reset()
@@ -205,12 +211,44 @@ func HistTest(sample int) {
 		// h.Graph(100, 100, true)
 	}
 	if true {
+		h.Reset(math.Ceil)
+		h.Scale(1, 5)
+		rtp := par(0.9, 0.96)
+		h.Title = fmt.Sprintf("House edgne distribution (rtp = %v%%)", 100*rtp)
+		for h.Calc.Cnt < sample {
+			x := h.RNG.Edge(rtp)
+			h.Add(float64(x))
+		}
+		h.Graph(100, 30, false)
+	}
+	if true {
+		h.Reset()
+		ƛ := par(2, 4)
+		h.Title = fmt.Sprintf("Poisson distribution (ƛ = %v)", ƛ)
+		for h.Calc.Cnt < sample {
+			x := h.RNG.Poisson(ƛ)
+			h.Add(float64(x))
+		}
+		h.Graph(100, 50, false)
+	}
+	if true {
 		h.Reset()
 		ɑ1 := par(0.05, 0.15) * 2
 		ɑ2 := (5 - ɑ1) / 2
-		h.Title = fmt.Sprintf("Hermite distribution (ɑ1 = %v, ɑ2  = %v)", ɑ1, ɑ2)
+		h.Title = fmt.Sprintf("Hermite distribution (ɑ1 = %v, ɑ2 = %v)", ɑ1, ɑ2)
 		for h.Calc.Cnt < sample {
 			x := h.RNG.Hermite(ɑ1, ɑ2)
+			h.Add(float64(x))
+		}
+		h.Graph(100, 100, false)
+	}
+	if true {
+		h.Reset()
+		μ1 := par(1.6, 3)
+		μ2 := par(1.5, 2.9)
+		h.Title = fmt.Sprintf("Skellam distribution (μ1 = %v, μ2 = %v)", μ1, μ2)
+		for h.Calc.Cnt < sample {
+			x := h.RNG.Skellam(μ1, μ2)
 			h.Add(float64(x))
 		}
 		h.Graph(100, 100, false)
@@ -259,7 +297,6 @@ func HistTest(sample int) {
 	}
 	if false {
 		h.Reset()
-		h.Scale(1, 1)
 		h.Title = "Sic-Bo"
 		for h.Calc.Cnt < sample {
 			d, _, _ := h.RNG.SicBo()
