@@ -78,7 +78,7 @@ func (h *Histogram) Add(x float64) {
 	}
 }
 
-func (h *Histogram) Graph(width int, limit int, cumul bool) {
+func (h *Histogram) Graph(width int, limit int, cumul bool, nozero ...bool) {
 	iif := func(c bool, t, f string) string {
 		if c {
 			return t
@@ -86,17 +86,37 @@ func (h *Histogram) Graph(width int, limit int, cumul bool) {
 			return f
 		}
 	}
+	trim := func(s, r string) string {
+		l := len(s) - 1
+		for ; s[l] == '0'; l-- {
+			s = s[:l] + r + s[l+1:]
+		}
+		if s[l] == '.' {
+			s = s[:l] + r + s[l+1:]
+		}
+		return s
+	}
+	str := func(a any) string {
+		return trim(fmt.Sprintf("%.2f", a), "")
+	}
+	nz := false
+	if len(nozero) > 0 {
+		nz = nozero[0]
+	}
 	fmt.Println()
-	df := iif(cumul, "PDF", "CDF")
-	fmt.Printf("%s %s:   n = %d   [%.2f, %.2f]   μ = %.5f  σ = %.5f\n",
-		df, h.Title, h.Calc.Cnt, h.Calc.Min, h.Calc.Max, h.Calc.Avg, h.Calc.Dev)
+	df := iif(cumul, "CDF", "PDF")
+	fmt.Printf("%s %s:   n = %d   [%v, %v]   μ = %.5f  σ = %.5f\n",
+		df, h.Title, h.Calc.Cnt, str(h.Calc.Min), str(h.Calc.Max), h.Calc.Avg, h.Calc.Dev)
 	p, t := float64(h.Peak), float64(h.Calc.Cnt)
 	if cumul {
 		p = t
 	}
 	s := p / float64(width)
-	lo := h.RNG.Censor(h.Min, h.Mode-limit, h.Max)
-	hi := h.RNG.Censor(h.Min, h.Mode+limit, h.Max)
+	lo, hi := h.Min, h.Max
+	if !nz {
+		lo = h.RNG.Censor(h.Min, h.Mode-limit, h.Max)
+		hi = h.RNG.Censor(h.Min, h.Mode+limit, h.Max)
+	}
 	c := 0.
 	for i, d := range h.Data {
 		if i < lo {
@@ -105,27 +125,31 @@ func (h *Histogram) Graph(width int, limit int, cumul bool) {
 	}
 	for i := lo; i <= hi; i++ {
 		d := h.Data[i]
-		n := float64(d)
-		if cumul {
-			c += n
-			n = c
+		if d != 0 || !nz {
+			n := float64(d)
+			if cumul {
+				c += n
+				n = c
+			}
+			w := int(math.Round(n / s))
+			b := strings.Repeat("-", w)
+			y := n / t
+			if !cumul {
+				y *= h.k
+			}
+			v := trim(fmt.Sprintf("%.2f", 100*y), "") + "%"
+			x := h.X(float64(i))
+			u := trim(fmt.Sprintf("%9.2f", x), " ")
+			fmt.Printf("%v  %s", u, iif(d == h.Peak, "►", " "))
+			fmt.Printf("%s%s  %v  %.0f", iif(x == 0, "┤", "│"), b, v, n)
+			fmt.Println()
 		}
-		w := int(math.Round(n / s))
-		b := strings.Repeat("-", w)
-		y := n / t
-		if !cumul {
-			y *= h.k
-		}
-		x := h.X(float64(i))
-		fmt.Printf("%9.2f  %s", x, iif(d == h.Peak, "►", " "))
-		fmt.Printf("%s%s  %.2f%%  %.0f", iif(x == 0, "┤", "│"), b, y*100, n)
-		fmt.Println()
 	}
 }
 
 func HistTest(n int) {
 	var h Histogram
-	{
+	if true {
 		h.Reset()
 		h.Scale(1, 4)
 		ɑ := 3.25
@@ -136,10 +160,10 @@ func HistTest(n int) {
 		}
 		h.Graph(100, 50, false)
 	}
-	{
+	if true {
 		h.Reset()
 		h.Scale(1, 1)
-		ƛ := 3.61
+		ƛ := float64(h.RNG.Int(200, 400)) / 100
 		h.Title = fmt.Sprintf("Poisson distribution (ƛ = %v)", ƛ)
 		for h.Calc.Cnt < n {
 			x := h.RNG.Poisson(ƛ)
@@ -147,7 +171,7 @@ func HistTest(n int) {
 		}
 		h.Graph(100, 50, false)
 	}
-	{
+	if true {
 		h.Reset()
 		h.Scale(1, 10)
 		ξ, ω, ɑ := 0., 1., 4.
@@ -158,7 +182,7 @@ func HistTest(n int) {
 		}
 		h.Graph(100, 50, false)
 	}
-	{
+	if true {
 		h.Reset(math.Floor)
 		h.Scale(1, 5)
 		ƛ := 2.71
@@ -170,7 +194,7 @@ func HistTest(n int) {
 		h.Graph(100, 100, false)
 		h.Graph(100, 100, true)
 	}
-	{
+	if true {
 		h.Reset()
 		h.Scale(1, 1)
 		ɑ1, ɑ2 := 0.2, 1.9
@@ -181,8 +205,34 @@ func HistTest(n int) {
 		}
 		h.Graph(100, 100, false)
 	}
+	if true {
+		h.Reset()
+		h.Scale(1, 1)
+		p := float64(h.RNG.Int(55, 65)) / 100
+		h.Title = fmt.Sprintf("Geometric distribution (p = %v)", p)
+		for h.Calc.Cnt < n {
+			x := h.RNG.Geometric(p)
+			h.Add(float64(x))
+		}
+		h.Graph(100, 100, false)
+	}
+	if false {
+		h.Reset()
+		h.Scale(1, 1)
+		h.Title = "Sic-Bo"
+		for h.Calc.Cnt < n {
+			d, _, _ := h.RNG.SicBo()
+			h.RNG.Sort(&d)
+			x := 0
+			for _, i := range d {
+				x = x*10 + i
+			}
+			h.Add(float64(x))
+		}
+		h.Graph(100, 100, false, true)
+	}
 }
 
 func init() {
-	//	HistTest(1 * 1000 * 1000)
+	// HistTest(1 * 1000 * 1000)
 }

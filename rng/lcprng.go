@@ -409,8 +409,11 @@ func (rnd *LCPRNG) Pascal(r int, p float) (n float) {
 }
 
 // # Geometric distribution random variable.
-//
-//	p(n) = p · (1 - p)ⁿ
+/*
+	q  = 1 - p
+	μ  = q / p
+	σ² = q / p²
+*/
 func (rnd *LCPRNG) Geometric(p float) float {
 	return rnd.Pascal(1, p)
 }
