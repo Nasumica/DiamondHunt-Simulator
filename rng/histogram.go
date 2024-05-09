@@ -82,7 +82,10 @@ func (h *Histogram) Add(x float64) {
 	}
 }
 
-func (h *Histogram) Graph(width int, limit int, cumul bool, nozero ...bool) {
+func (h *Histogram) Graph(width int, limit int, flags ...bool) {
+	flag := func(i int) bool {
+		return i < len(flags) && flags[i]
+	}
 	iif := func(c bool, t, f string) string {
 		if c {
 			return t
@@ -103,21 +106,18 @@ func (h *Histogram) Graph(width int, limit int, cumul bool, nozero ...bool) {
 	str := func(a any) string {
 		return trim(fmt.Sprintf("%.2f", a), "")
 	}
-	nz := false
-	if len(nozero) > 0 {
-		nz = nozero[0]
-	}
-	fmt.Println()
+	cumul, nozero := flag(0), flag(1)
 	df := iif(cumul, "CDF", "PDF")
+	fmt.Println()
 	fmt.Printf("%s %s:   n = %d   [%v, %v]   μ = %.5f  σ = %.5f\n",
 		h.Title, df, h.Calc.Cnt, str(h.Calc.Min), str(h.Calc.Max), h.Calc.Avg, h.Calc.Dev)
 	p, t := float64(h.Peak), float64(h.Calc.Cnt)
 	if cumul {
 		p = t
 	}
-	s := p / float64(width)
+	s := float64(width) / p
 	lo, hi := h.Min, h.Max
-	if !nz {
+	if !nozero {
 		lo = h.RNG.Censor(h.Min, h.Mode-limit, h.Max)
 		hi = h.RNG.Censor(h.Min, h.Mode+limit, h.Max)
 	}
@@ -129,13 +129,13 @@ func (h *Histogram) Graph(width int, limit int, cumul bool, nozero ...bool) {
 	}
 	for i := lo; i <= hi; i++ {
 		d := h.Data[i]
-		if d != 0 || !nz {
+		if d != 0 || !nozero {
 			n := float64(d)
 			if cumul {
 				c += n
 				n = c
 			}
-			w := int(math.Round(n / s))
+			w := int(math.Round(n * s))
 			b := strings.Repeat("-", w)
 			y := n / t
 			if !cumul {
@@ -145,7 +145,7 @@ func (h *Histogram) Graph(width int, limit int, cumul bool, nozero ...bool) {
 			x := h.X(float64(i))
 			u := trim(fmt.Sprintf("%10.3f", x), " ")
 			fmt.Printf("%v  %s", u, iif(d == h.Peak, "►", " "))
-			fmt.Printf("%s%s  %v  %.0f", iif(x == 0, "┤", "│"), b, v, n)
+			fmt.Printf("%s%s  %v  %.0f", iif(x == math.Floor(x), "┤", "│"), b, v, n)
 			fmt.Println()
 		}
 	}
@@ -153,151 +153,169 @@ func (h *Histogram) Graph(width int, limit int, cumul bool, nozero ...bool) {
 
 func HistTest(sample int) {
 	var h Histogram
+	h.Reset()
 
-	par := func(a, b float64) float64 {
-		const s = 100
+	par := func(a, b float64, q ...float64) float64 {
+		s := 100.
+		if len(q) > 0 {
+			s = q[0]
+		}
 		m, n := int(math.Round(s*a)), int(math.Round(s*b))
 		return float64(h.RNG.Int(m, n)) / s
 	}
 
 	if true {
+		ɑ := par(0.5, 6)
+		h.Title = fmt.Sprintf("Gamma distribution (ɑ = %v)", ɑ)
 		h.Reset()
 		h.Scale(1, 4)
-		ɑ := par(1.5, 3.5)
-		h.Title = fmt.Sprintf("Gamma distribution (ɑ = %v)", ɑ)
 		for h.Calc.Cnt < sample {
 			x := h.RNG.Gamma(ɑ)
 			h.Add(float64(x))
 		}
-		h.Graph(100, 30, false)
+		h.Graph(100, 30)
 	}
 	if true {
-		ɑ := par(0.4, 3.5)
-		β := par(0.4, 3.5)
+		ɑ := par(0.4, 3.5, 4)
+		β := par(0.4, 3.5, 4)
+		h.Title = fmt.Sprintf("Beta distribution (ɑ = %v, β = %v)", ɑ, β)
 		if ɑ > β {
 			h.Reset(math.Ceil)
-		} else {
+		} else if ɑ < β {
 			h.Reset(math.Floor)
+		} else {
+			h.Reset()
 		}
 		h.Scale(1, 25)
-		h.Title = fmt.Sprintf("Beta distribution (ɑ = %v, β = %v)", ɑ, β)
 		for h.Calc.Cnt < sample {
 			x := h.RNG.Beta(ɑ, β)
 			h.Add(float64(x))
 		}
-		h.Graph(100, 100, false)
+		h.Graph(100, 100)
 	}
 	if true {
+		ξ, ω, ɑ := 0., 1., par(-5, 5, 2)
+		h.Title = fmt.Sprintf("Skew-normal distribution (ξ = %v, ω = %v, ɑ = %v)", ξ, ω, ɑ)
 		h.Reset()
 		h.Scale(1, 10)
-		ξ, ω, ɑ := 0., 1., par(-5, 5)
-		h.Title = fmt.Sprintf("Skew-normal distribution (ξ = %v, ω = %v, ɑ = %v)", ξ, ω, ɑ)
 		for h.Calc.Cnt < sample {
 			x := h.RNG.SkewNormal(ξ, ω, ɑ)
 			h.Add(float64(x))
 		}
-		h.Graph(100, 30, false)
+		h.Graph(100, 20)
 	}
 	if true {
-		h.Reset(math.Floor)
-		h.Scale(1, 5)
+		ν := par(1, 10)
+		if h.RNG.Bernoulli(0.01) {
+			ν = math.Inf(1)
+		}
+		h.Title = fmt.Sprintf("Student's t distribution (ν = %v)", ν)
+		h.Reset()
+		h.Scale(1, 4)
+		for h.Calc.Cnt < sample {
+			x := h.RNG.StudentsT(ν)
+			h.Add(float64(x))
+		}
+		h.Graph(100, 20)
+	}
+	if true {
 		ƛ := par(2, 3)
 		h.Title = fmt.Sprintf("Exponential distribution (ƛ = %v)", ƛ)
+		h.Reset(math.Floor)
+		h.Scale(1, 5)
 		for h.Calc.Cnt < sample {
 			x := h.RNG.Exponential(ƛ)
 			h.Add(float64(x))
 		}
-		h.Graph(100, 100, false)
+		h.Graph(100, 100)
 		// h.Graph(100, 100, true)
 	}
 	if true {
-		h.Reset(math.Ceil)
-		h.Scale(1, 5)
 		rtp := par(0.9, 0.96)
 		h.Title = fmt.Sprintf("House edgne distribution (rtp = %v%%)", 100*rtp)
+		h.Reset(math.Ceil)
+		h.Scale(1, 5)
 		for h.Calc.Cnt < sample {
 			x := h.RNG.Edge(rtp)
 			h.Add(float64(x))
 		}
-		h.Graph(100, 30, false)
+		h.Graph(100, 30)
 	}
 	if true {
-		h.Reset()
 		ƛ := par(2, 4)
 		h.Title = fmt.Sprintf("Poisson distribution (ƛ = %v)", ƛ)
+		h.Reset()
 		for h.Calc.Cnt < sample {
 			x := h.RNG.Poisson(ƛ)
 			h.Add(float64(x))
 		}
-		h.Graph(100, 50, false)
+		h.Graph(100, 50)
 	}
 	if true {
-		h.Reset()
 		ɑ1 := par(0.05, 0.15) * 2
 		ɑ2 := (5 - ɑ1) / 2
 		h.Title = fmt.Sprintf("Hermite distribution (ɑ1 = %v, ɑ2 = %v)", ɑ1, ɑ2)
+		h.Reset()
 		for h.Calc.Cnt < sample {
 			x := h.RNG.Hermite(ɑ1, ɑ2)
 			h.Add(float64(x))
 		}
-		h.Graph(100, 100, false)
+		h.Graph(100, 100)
 	}
 	if true {
-		h.Reset()
-		μ1 := par(1.6, 3)
-		μ2 := par(1.5, 2.9)
+		μ1, μ2 := par(1.6, 3), par(1.5, 2.9)
 		h.Title = fmt.Sprintf("Skellam distribution (μ1 = %v, μ2 = %v)", μ1, μ2)
+		h.Reset()
 		for h.Calc.Cnt < sample {
 			x := h.RNG.Skellam(μ1, μ2)
 			h.Add(float64(x))
 		}
-		h.Graph(100, 100, false)
+		h.Graph(100, 100)
 	}
 	if true {
-		h.Reset()
 		p := par(0.4, 0.6)
 		h.Title = fmt.Sprintf("Geometric distribution (p = %v)", p)
+		h.Reset()
 		for h.Calc.Cnt < sample {
 			x := h.RNG.Geometric(p)
 			h.Add(float64(x))
 		}
-		h.Graph(100, 100, false)
+		h.Graph(100, 100)
 	}
 	if true {
-		h.Reset()
-		n := 52
-		p := 0.5
+		n, p := h.RNG.Int(30, 70), par(0.1, 0.9, 10)
 		h.Title = fmt.Sprintf("Binomial distribution (n = %d, p = %v)", n, p)
+		h.Reset()
 		for h.Calc.Cnt < sample {
 			x := h.RNG.Binomial(n, p)
 			h.Add(float64(x))
 		}
-		h.Graph(100, 100, false)
+		h.Graph(100, 100)
 	}
 	if true {
+		a, b := 0., 20.
+		mode := par(a+1, b-1, 1)
+		h.Title = fmt.Sprintf("Triangular distribution (a = %v, b = %v, mode = %v)", a, b, mode)
 		h.Reset()
 		h.Scale(1, 1)
-		a, b := 0., 20.
-		mode := par(a+1, b-1)
-		h.Title = fmt.Sprintf("Triangular distribution (a = %v, b = %v, mode = %v)", a, b, mode)
 		for h.Calc.Cnt < sample {
 			x := h.RNG.Triangular(a, b, mode)
 			h.Add(float64(x))
 		}
-		h.Graph(100, 100, false)
+		h.Graph(100, 100)
 	}
 	if false {
-		h.Reset()
 		h.Title = "3 dice throw sum"
+		h.Reset()
 		for h.Calc.Cnt < sample {
 			x := h.RNG.Int(1, 6) + h.RNG.Int(1, 6) + h.RNG.Int(1, 6)
 			h.Add(float64(x))
 		}
-		h.Graph(100, 100, false)
+		h.Graph(100, 100)
 	}
 	if false {
-		h.Reset()
 		h.Title = "Sic-Bo"
+		h.Reset()
 		for h.Calc.Cnt < sample {
 			d, _, _ := h.RNG.SicBo()
 			h.RNG.Sort(&d)

@@ -26,7 +26,7 @@ func main() {
 	sw.Start()
 	fmt.Println()
 	million := 1000 * 1000
-	iter := 500 * million
+	iter := 100 * million
 	DiamondHunt(iter)
 	elapsed, speed := sw.Eplased(iter)
 	fmt.Printf("%d games,  elapsed = %.3f\",  speed = %.0f games / s\n", iter, elapsed, speed)
