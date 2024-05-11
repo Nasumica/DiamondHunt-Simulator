@@ -68,7 +68,7 @@ func (rnd *LCPRNG) Randomize(seeds ...octa) (seed octa) {
 where constants
 	a = 0x5851f42d4c957f2d
 	c = 0x14057b7ef767814f
-given by Knuth in MMIX RISC processor.
+are given by Knuth in MMIX RISC processor.
 */
 func (rnd *LCPRNG) Next() octa {
 	rnd.dog.Lock()         // ... da pustim kuče dok ja radim,
@@ -94,7 +94,7 @@ then
 where
 	b = 1/a = MulInv64(a)
 	d = -b * c
-For given constants a and c
+For given constants a and c in Next method
 	b = 0xc097ef87329e28a5
 	d = 0x9995b5b621535015
 */
@@ -154,7 +154,7 @@ func (rnd *LCPRNG) Choice(n int) int {
 // Coin flip decision.
 func (rnd *LCPRNG) Flip() bool {
 	const mask octa = 1 << 61 // prime number high bit
-	return (rnd.Next() & mask) == 0
+	return (rnd.Next() & mask) != 0
 }
 
 // # True with probability k/n.
@@ -319,7 +319,7 @@ func (rnd *LCPRNG) Random() float {
 // # Random angle (0, 2π).
 //
 //	μ = π
-//	σ = π / sqrt(3)
+//	σ = π / sqrt(3) = 1.8137993642342178505940782576422
 func (rnd *LCPRNG) Angle() float {
 	const τ float = 2 * math.Pi // τ = 2π = 0x3243F6A8885A3p-47
 	return τ * rnd.Random()
@@ -369,9 +369,9 @@ func (rnd *LCPRNG) Binomial(n int, p float) (b int) {
 	const limit = 50
 	x, q := float(n), 1-p
 	if (n > limit) && (x*p > 9*q) && (x*q > 9*p) { // Central Limit Theorem
-		x *= p           // mean
-		q *= x           // variance
-		q = math.Sqrt(q) // standard deviation
+		x *= p           // μ
+		q *= x           // σ²
+		q = math.Sqrt(q) // σ
 		for b = rnd.Discrete(x, q); (b < 0) || (b > n); {
 			b = rnd.Discrete(x, q)
 		}
@@ -419,11 +419,15 @@ func (rnd *LCPRNG) Geometric(p float) float {
 }
 
 // # Rayleigh distribution random variable.
-func (rnd *LCPRNG) Rayleigh(σ float) float {
-	if σ != 0 {
-		σ *= math.Sqrt(2 * rnd.Exponential()) // Box-Muller transform
+/*
+	μ = ς · sqrt(π / 2)       = ς · 1.25331413731550025120788264240552
+	σ = ς · sqrt((4 - π) / 2) = ς · 0.65513637756203355309393588562466
+*/
+func (rnd *LCPRNG) Rayleigh(ς float) float {
+	if ς != 0 {
+		ς *= math.Sqrt(2 * rnd.Exponential()) // Box-Muller transform
 	}
-	return σ
+	return ς
 }
 
 // # Arcus distribution random variable (-1, 1).
@@ -506,7 +510,7 @@ func (rnd *LCPRNG) ExpNormal(μ, σ, ƛ float) float {
 
 // # Laplace distribution random variable.
 //
-//	σ = b · sqrt(2)
+//	σ = b · sqrt(2) = b · 1.4142135623730950488016887242097
 func (rnd *LCPRNG) Laplace(μ, b float) float {
 	if b != 0 {
 		b *= rnd.Rademacher(rnd.Exponential())
@@ -542,7 +546,7 @@ func (rnd *LCPRNG) Tukey(ƛ float) float {
 
 // # Logistic distribution random variable.
 //
-//	σ = s · π / sqrt(3)
+//	σ = s · π / sqrt(3) = s · 1.8137993642342178505940782576422
 func (rnd *LCPRNG) Logistic(μ, s float) float {
 	if s != 0 {
 		s *= rnd.Tukey(0)
@@ -995,21 +999,30 @@ func (rnd *LCPRNG) Sort(x *list) {
 }
 
 // # Weighted-uniform random variation k of n elements.
-//
-//	w = tuning
-//	n = len(tuning)
-//	k = podium
-//
-// Calculated by race simulation standing list.
-func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimised, tested
-	cars := len(*tuning)                 // number of cars
-	podium = rnd.Censor(0, podium, cars) // check podium
-	stand = make(list, podium)           // standing list
-	place, count := 0, 0                 // current place and count
-	pos, neg := 0, 0                     // positive and negative total tunings
-	var head, body, tail list            // cars list
+/*
+Calculated by race simulation standing list.
+	w = tuning
+	n = len(tuning)
+	k = podium
+*/
+func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) {
+	cars := len(*tuning) // number of cars
 
-	for c, t := range *tuning { // prepae race
+	if podium > cars { // trim podium
+		podium = cars
+	}
+	if podium <= 0 { // race canceled
+		return
+	}
+
+	stand = make(list, podium) // standing list
+	place, finish := 0, 0      // current place and count
+	pos, neg := 0, 0           // positive and negative total tunings
+	var head, body, tail list  // cars list
+
+	// Gentlemen, start your engines!
+
+	for c, t := range *tuning {
 		switch {
 		case t > 0: // good tuning
 			head, pos = append(head, c), pos+t
@@ -1020,12 +1033,10 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 		}
 	}
 
-	// Gentlemen, start your engines!
-
 	// ▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀
 
 	race := func(car *list, tune, dir int) {
-		for l := len(*car); l > 0 && count < podium; {
+		for l := len(*car); l > 0 && finish < podium; {
 			i := 0
 			if l > 1 {
 				if tune == 0 { // uniform
@@ -1041,12 +1052,12 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 			}
 			if place < podium { // chequered flag
 				stand[place] = (*car)[i]
-				count++
+				finish++
 			}
 			place += dir
 			l--
 			copy((*car)[i:], (*car)[i+1:]) // remove car
-			(*car) = (*car)[:l]            // from list
+			(*car) = (*car)[:l]            // from track
 		}
 	}
 
@@ -1060,7 +1071,7 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) { // not optimise
 	return
 }
 
-// # Weighted random permutation.
+// # Weighted-uniform random permutation.
 func (rnd *LCPRNG) Convoy(tuning *list) list {
 	return rnd.Race(len(*tuning), tuning)
 }
@@ -1484,14 +1495,13 @@ func SpigotPi(n int) (π []byte) {
 		}
 		for i := 0; i < n; i++ {
 			s, c := 0, 0
-			for j, k := b, o; j > 0; k -= 2 {
-				j--
+			for j, k := b-1, o; j >= 0; j, k = j-1, k-2 {
 				s = 10*m[j] + c
 				c, m[j] = s/k, s%k
 				c *= j
 			}
-			m[0] = s % 10
-			d := byte(s / 10)
+			c, m[0] = s/10, s%10
+			d := byte(c)
 			if d != 9 {
 				if d > 9 {
 					d -= 10

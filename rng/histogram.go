@@ -9,15 +9,17 @@ import (
 )
 
 type Histogram struct {
-	Title      string
-	Calc       StatCalc
-	Data       map[int]int
-	Min, Max   int
-	Mode, Peak int
-	ox, oy     float64
-	dx, dy, k  float
+	Title      string      // title
+	Data       map[int]int // data
+	Min, Max   int         // range
+	Mode, Peak int         // mode
+	PMF        bool        // probability mass function
+	RNG        LCPRNG      // entropy
+	Calc       StatCalc    // calculator
+	ox, oy     float64     // origin
+	dx, dy     float64     // delta
+	k          float64     // slope
 	f          []func(x float64) float64
-	RNG        LCPRNG
 }
 
 func (h *Histogram) Reset(f ...func(x float64) float64) {
@@ -27,15 +29,16 @@ func (h *Histogram) Reset(f ...func(x float64) float64) {
 	h.f = f
 	h.Scale(1, 1)
 	h.Mode, h.Peak = 0, 0
+	h.PMF = true
 }
 
 // # Define line (x1, y1)--(x2, y2)
 func (h *Histogram) Linear(x1, y1, x2, y2 float64) {
-	h.dy = y2 - y1
-	h.dx = x2 - x1
-	if h.dx == 0 || h.dy == 0 {
+	if x1 == x2 || y1 == y2 {
 		h.Scale(1, 1)
 	} else {
+		h.dx = x2 - x1
+		h.dy = y2 - y1
 		h.k = h.dy / h.dx
 		h.ox = x1
 		h.oy = y1
@@ -56,19 +59,25 @@ func (h *Histogram) X(y float64) float64 {
 	return x
 }
 
+// # Quantize value
 func (h *Histogram) N(x float64) int {
 	y := h.Y(x)
-	for _, f := range h.f {
-		y = f(y)
+	if len(h.f) == 0 {
+		y = math.Round(y)
+	} else {
+		for _, f := range h.f {
+			y = f(y)
+		}
 	}
-	return int(math.Round(y))
+	return int(y)
 }
 
 func (h *Histogram) Add(x float64) {
+	h.PMF = h.PMF && x == math.Floor(x)
 	h.Calc.Add(x)
 	n := h.N(x)
-	m := h.Data[n] + 1
-	h.Data[n] = m
+	c := h.Data[n] + 1
+	h.Data[n] = c
 	if h.Calc.Cnt == 1 {
 		h.Min, h.Max = n, n
 	} else if h.Min > n {
@@ -76,9 +85,9 @@ func (h *Histogram) Add(x float64) {
 	} else if h.Max < n {
 		h.Max = n
 	}
-	if h.Peak < m {
+	if h.Peak < c {
 		h.Mode = n
-		h.Peak = m
+		h.Peak = c
 	}
 }
 
@@ -86,7 +95,7 @@ func (h *Histogram) Graph(width int, limit int, flags ...bool) {
 	flag := func(i int) bool {
 		return i < len(flags) && flags[i]
 	}
-	iif := func(c bool, t, f string) string {
+	iif := func(c bool, t, f any) any {
 		if c {
 			return t
 		} else {
@@ -107,7 +116,7 @@ func (h *Histogram) Graph(width int, limit int, flags ...bool) {
 		return trim(fmt.Sprintf("%.2f", a), "")
 	}
 	cumul, nozero := flag(0), flag(1)
-	df := iif(cumul, "CDF", "PDF")
+	df := iif(cumul, "CDF", iif(h.PMF, "PMF", "PDF"))
 	fmt.Println()
 	fmt.Printf("%s %s:   n = %d   [%v, %v]   μ = %.5f  σ = %.5f\n",
 		h.Title, df, h.Calc.Cnt, str(h.Calc.Min), str(h.Calc.Max), h.Calc.Avg, h.Calc.Dev)
@@ -136,7 +145,7 @@ func (h *Histogram) Graph(width int, limit int, flags ...bool) {
 				n = c
 			}
 			w := int(math.Round(n * s))
-			b := strings.Repeat("-", w)
+			b := strings.Repeat("╶", w)
 			y := n / t
 			if !cumul {
 				y *= h.k
@@ -145,7 +154,7 @@ func (h *Histogram) Graph(width int, limit int, flags ...bool) {
 			x := h.X(float64(i))
 			u := trim(fmt.Sprintf("%10.3f", x), " ")
 			fmt.Printf("%v  %s", u, iif(d == h.Peak, "►", " "))
-			fmt.Printf("%s%s  %v  %.0f", iif(x == math.Floor(x), "┤", "│"), b, v, n)
+			fmt.Printf("%s%s  %v  %.0f", iif(x == math.Floor(x), "┼", "│"), b, v, n)
 			fmt.Println()
 		}
 	}
@@ -253,7 +262,7 @@ func HistTest(sample int) {
 	}
 	if true {
 		ɑ1 := par(0.05, 0.15) * 2
-		ɑ2 := (5 - ɑ1) / 2
+		ɑ2 := (par(4, 6, 1) - ɑ1) / 2
 		h.Title = fmt.Sprintf("Hermite distribution (ɑ1 = %v, ɑ2 = %v)", ɑ1, ɑ2)
 		h.Reset()
 		for h.Calc.Cnt < sample {
@@ -304,6 +313,30 @@ func HistTest(sample int) {
 		}
 		h.Graph(100, 100)
 	}
+	if true {
+		m := h.RNG.Benford(1, 9)
+		n := m + 8
+		h.Title = fmt.Sprintf("Benford law distribution (m = %v, n = %v)", m, n)
+		h.Reset()
+		h.Scale(1, 1)
+		for h.Calc.Cnt < sample {
+			x := h.RNG.Benford(m, n)
+			h.Add(float64(x))
+		}
+		h.Graph(100, 100)
+	}
+	if true {
+		μ, σ := par(1, 5, 1), 2.
+		ƛ := μ * μ * μ / σ / σ
+		h.Title = fmt.Sprintf("Wald (Inverse Gaussian) distribution (μ = %v, ƛ = %v)", μ, ƛ)
+		h.Reset()
+		h.Scale(1, 5)
+		for h.Calc.Cnt < sample {
+			x := h.RNG.Wald(μ, ƛ)
+			h.Add(float64(x))
+		}
+		h.Graph(100, 30)
+	}
 	if false {
 		h.Title = "3 dice throw sum"
 		h.Reset()
@@ -330,5 +363,5 @@ func HistTest(sample int) {
 }
 
 func init() {
-	// HistTest(1 * 1000 * 1000)
+	HistTest(1 * 1000 * 1000)
 }

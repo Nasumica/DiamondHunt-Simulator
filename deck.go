@@ -114,6 +114,8 @@ type Deck struct {
 	Cards    []int
 	Rest     int
 	Croupier rng.LCPRNG
+	Cheats   []string
+	Save     []int
 }
 
 // Initialize deck of cards.
@@ -126,12 +128,58 @@ func (deck *Deck) Init() {
 // Reset.
 func (deck *Deck) Reset() {
 	deck.Rest = len(deck.Cards)
+	deck.Cheats = []string{}
+	deck.Save = []int{}
+}
+
+func (deck *Deck) Index(c int) int {
+	n := -1
+	for i, k := range deck.Cards[:deck.Rest] {
+		if k == c {
+			n = i
+			break
+		}
+	}
+	return n
+}
+
+func (deck *Deck) AddCheats(cheats ...string) {
+	deck.Cheats = append(deck.Cheats, cheats...)
+}
+
+func (deck *Deck) Hide(save ...string) {
+	for _, s := range save {
+		c := CardMap[s]
+		n := deck.Index(c)
+		if n >= 0 {
+			deck.Save = append(deck.Save, c)
+			deck.Cards = append(deck.Cards[:n], deck.Cards[n+1:]...)
+			deck.Rest--
+		}
+	}
+}
+
+func (deck *Deck) Release() {
+	deck.Rest += len(deck.Save)
+	deck.Cards = append(deck.Save, deck.Cards...)
+	deck.Save = []int{}
 }
 
 // Draw single card from deck.
-func (deck *Deck) Draw() (card Card) {
+func (deck *Deck) Draw(cheats ...string) (card Card) {
+	deck.AddCheats(cheats...)
 	if deck.Rest > 0 {
-		n := deck.Croupier.Choice(deck.Rest)
+		n := -1
+
+		if len(deck.Cheats) > 0 {
+			x := CardMap[deck.Cheats[0]]
+			deck.Cheats = deck.Cheats[1:]
+			n = deck.Index(x)
+		}
+
+		if n < 0 {
+			n = deck.Croupier.Choice(deck.Rest)
+		}
 		c := deck.Cards[n]
 		card = CardVirtues[c]
 		deck.Rest--
@@ -144,7 +192,8 @@ func (deck *Deck) Draw() (card Card) {
 }
 
 // Deal cards from deck (Fisher-Yates).
-func (deck *Deck) Deal(cards int) (hand Cards) {
+func (deck *Deck) Deal(cards int, cheats ...string) (hand Cards) {
+	deck.AddCheats(cheats...)
 	if cards > 0 {
 		hand = make(Cards, cards)
 		for i := range hand {

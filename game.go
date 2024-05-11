@@ -69,10 +69,10 @@ func (scr *Screen) Strategy() {
 
 // Base game deal.
 func (scr *Screen) Deal() {
-	scr.Hand = Dealer.NewDeal(4) // 4 cards in hand from new deck
-	scr.Diam = Dealer.Null()     // no cards in diamond yet
-	scr.Strategy()               // swap strategy
-	scr.Swaps = 0                // reset counter
+	scr.Hand = Dealer.Deal(4) // 4 cards in hand from new deck
+	scr.Diam = Dealer.Null()  // no cards in diamond yet
+	scr.Strategy()            // swap strategy
+	scr.Swaps = 0             // reset counter
 	scr.Flow = ""
 	scr.Wait = 5
 	scr.Deck = 52 - len(scr.Hand)
@@ -92,11 +92,12 @@ func (scr *Screen) Draw() int {
 	return card.Index
 }
 
+var force_swap = true
+
 // Hunt for diamond.
 func (scr *Screen) Hunt() (more bool) {
 	const (
 		reuse = false
-		diam  = true
 	)
 
 	i := scr.Draw()   // diamond card index
@@ -114,9 +115,11 @@ func (scr *Screen) Hunt() (more bool) {
 
 		if !swap {
 			m := i + l + 1
-			if m >= 4 {
-				swap = h.Load == scr.Wait && d.Load == 1
+			if m >= 5 {
+				// swap = h.Load == scr.Wait && d.Load == 1
+				swap = h.Load > 1 && d.Load == 1
 			}
+			swap = force_swap
 		}
 
 		if swap { // swap
@@ -150,7 +153,12 @@ func (scr *Screen) Hunt() (more bool) {
 
 // Play one hand.
 func (scr *Screen) Play(bet float64) HuntResponse {
+	Dealer.Reset()
+	Dealer.Hide("J♦", "Q♦", "T♦", "9♦", "8♦", "7♦", "6♦", "5♦", "4♦", "3♦", "2♦", "A♦")
+	Dealer.AddCheats("K♦")
 	scr.Deal()
+	Dealer.Release()
+	Dealer.AddCheats("Q♦", "J♦", "2♦")
 	for next := true; next; {
 		next = scr.Hunt()
 	}
