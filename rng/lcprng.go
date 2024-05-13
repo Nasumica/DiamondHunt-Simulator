@@ -519,8 +519,11 @@ func (rnd *LCPRNG) Laplace(μ, b float) float {
 }
 
 // # Suzuki distribution random variable.
-func (rnd *LCPRNG) Suzuki(μ, ν float) float {
-	return rnd.Rayleigh(rnd.LogNormal(μ, ν))
+//
+//	μ  = exp(m + ν²/2) · sqrt(π/2)
+//	σ² = exp(2·m + ν²) · (2·exp(ν²) - π/2)
+func (rnd *LCPRNG) Suzuki(m, ν float) float {
+	return rnd.Rayleigh(rnd.LogNormal(m, ν))
 }
 
 // # Cauchy distribution random variable.
@@ -748,7 +751,7 @@ func (rnd *LCPRNG) SnedecorsF(d1, d2 float) (f float) {
 Weighted random cuts.
 	s  = Σ ɑ
 	μᵢ = ɑᵢ / s
-	σᵢ = sqrt(ɑᵢ ✶ (s - ɑᵢ) / (s + 1)) / s
+	σᵢ = sqrt(ɑᵢ · (s - ɑᵢ) / (s + 1)) / s
 */
 func (rnd *LCPRNG) Dirichlet(ɑ ...float) (d array) {
 	if n := len(ɑ); n > 0 {
@@ -777,9 +780,7 @@ func (rnd *LCPRNG) Dirichlet(ɑ ...float) (d array) {
 
 // # Nakagami distribution random variable.
 /*
-	g  = Γ(m + 1/2) / Γ(m)
-	p  = g² / m
-	μ² = Ω * p
+	μ² = Ω · (Γ(m + 1/2) / Γ(m))² / m
 	σ² = Ω - μ²
 */
 func (rnd *LCPRNG) Nakagami(m, Ω float) float {
@@ -839,6 +840,10 @@ func (rnd *LCPRNG) Wald(μ, ƛ float) (w float) {
 }
 
 // # Pareto distribution random variable.
+/*
+	μ  = xm  · ɑ /  (ɑ - 1)
+	σ² = xm² · ɑ / ((ɑ - 1)² · (ɑ - 2))
+*/
 func (rnd *LCPRNG) Pareto(xm, ɑ float) (p float) {
 	if xm > 0 && ɑ > 0 {
 		p = xm * math.Exp(rnd.Exponential(ɑ))
@@ -847,11 +852,19 @@ func (rnd *LCPRNG) Pareto(xm, ɑ float) (p float) {
 }
 
 // # Lomax distribution random variable.
+/*
+	μ  = ƛ  / (ɑ - 1)
+	σ² = μ² / (ɑ - 2)
+*/
 func (rnd *LCPRNG) Lomax(ɑ, ƛ float) float {
 	return rnd.Pareto(ƛ, ɑ) - ƛ
 }
 
 // # Weibull distribution random variable.
+/*
+	μ  = ƛ  · Γ(1 + 1/k)
+	σ² = ƛ² · Γ(1 + 2/k) - μ²
+*/
 func (rnd *LCPRNG) Weibull(ƛ, k float) (w float) {
 	if ƛ > 0 && k > 0 {
 		w = ƛ * math.Pow(rnd.Exponential(), 1/k)
@@ -860,6 +873,10 @@ func (rnd *LCPRNG) Weibull(ƛ, k float) (w float) {
 }
 
 // # Yule–Simon distribution random variable.
+/*
+	μ  = ρ  / (ρ - 1)
+	σ² = μ² / (ρ - 2)
+*/
 func (rnd *LCPRNG) Yule(ρ float) float {
 	if ρ > 0 {
 		return rnd.Geometric(math.Exp(-rnd.Exponential(ρ))) + 1
@@ -894,36 +911,43 @@ func (rnd *LCPRNG) Benford(m, n int) (b int) {
 			b = m
 		} else {
 			b = int(math.Exp(rnd.Range(math.Log(float(m)), math.Log(float(n)+1))))
-			b = rnd.Censor(m, b, n)
+			b = rnd.Truncate(m, b, n)
 		}
 	}
 	return
 }
 
 // # Irwin-Hall distribution random variable.
-func (rnd *LCPRNG) IrwinHall(x float) (h float) {
-	if x > 0 {
-		const limit = 64
-		if x < limit {
-			t, f := math.Modf(x)
-			for n := int(t); n > 0; n-- {
-				h += rnd.Random()
-			}
-			h += rnd.Uniform(f)
-		} else { // Central Limit Theorem
-			h = rnd.Normal(x/2, math.Sqrt(x/12))
+/*
+Sum of n uniform randoms.
+	μ  = n / 2
+	σ² = n / 12
+*/
+func (rnd *LCPRNG) IrwinHall(n int) (x float) {
+	const limit = 64
+	if n > limit { // Central Limit Theorem
+		x = float(n)
+		x = rnd.Normal(x/2, math.Sqrt(x/12))
+	} else {
+		for ; n > 0; n-- {
+			x += rnd.Random()
 		}
 	}
 	return
 }
 
 // # Bates distribution random variable.
-func (rnd *LCPRNG) Bates(x, a, b float) (c float) {
-	if x > 0 {
-		c = (b - a) * rnd.IrwinHall(x) / x
+/*
+	μ  = (a + b) / 2
+	σ² = (b - a)² / (12 n)
+*/
+func (rnd *LCPRNG) Bates(n int, a, b float) float {
+	if n > 0 {
+		b = (b - a) * rnd.IrwinHall(n) / float(n)
+		return a + b
+	} else {
+		return 0
 	}
-	c += a
-	return
 }
 
 // # Triangulat distribution random variable.
@@ -1064,7 +1088,7 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) {
 	race(&head, pos, 1)  // convoy head (favorites)
 	race(&body, 0, 1)    // convoy body (uniform)
 	place = cars - 1     // backwards
-	race(&tail, neg, -1) // convoy tail
+	race(&tail, neg, -1) // convoy tail (wrecks)
 
 	// ▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀
 
@@ -1308,10 +1332,10 @@ func (rnd *LCPRNG) Lucky6() list {
 	return rnd.Mixer(49)
 }
 
-// # Censor value to range [min, nax].
+// # Truncate value to range [min, nax].
 //
-// Used to censor other distributions.
-func (rnd *LCPRNG) Censor(min, value, max int) int {
+// Used to truncate other distributions.
+func (rnd *LCPRNG) Truncate(min, value, max int) int {
 	if min > max {
 		min, max = max, min
 	}

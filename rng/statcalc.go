@@ -16,13 +16,15 @@ type StatCalc struct {
 	Dev float64 `json:"dev,omitempty"` // standard deviation, σ
 	Abe float64 `json:"abe,omitempty"` // aberation, n · variance
 	Sqr float64 `json:"sqr,omitempty"` // sum of squares, Σ x²
-	Nul int     `json:"nul,omitempty"` // zero items count
+	Nul int     `json:"nul,omitempty"` // zeroes count
+	Int int     `json:"int,omitempty"` // integers count
 	Val float64 `json:"val"`           // last value, x
+	Gcd uint64  `json:"gcd"`           // greatest common divisor (integers only)
 	Cat string  `json:"cat,omitempty"` // category name
 }
 
-// Add single value to statistical calculator.
-func (sc *StatCalc) put(x float64) {
+// # Add single value to statistical calculator.
+func (sc *StatCalc) Put(x float64) {
 	if sc.Cnt == 0 {
 		sc.Reset()
 		sc.Min = x
@@ -50,26 +52,31 @@ func (sc *StatCalc) put(x float64) {
 		// sc.Dev = math.Sqrt(math.Abs(n*sc.Sqr-sc.Sum*sc.Sum)) / n
 	}
 	sc.Val = x
+	if x == math.Floor(x) {
+		sc.Int++
+		if sc.Gcd != 1 && x != 0 {
+			if x = math.Abs(x); x <= math.MaxUint64 {
+				for n := uint64(x); n != 0; {
+					sc.Gcd, n = n, sc.Gcd%n
+				}
+			} else {
+				sc.Gcd = 1
+			}
+		}
+	}
 }
 
-// Reset statistical calculator.
-func (s *StatCalc) Reset() {
-	s.Cnt, s.Sum, s.Sqr, s.Min, s.Max = 0, 0, 0, 0, 0
-	s.Abe, s.Avg, s.Dev, s.Nul, s.Val = 0, 0, 0, 0, 0
+// # Reset statistical calculator.
+func (sc *StatCalc) Reset() {
+	sc.Cnt, sc.Sum, sc.Sqr, sc.Min, sc.Max = 0, 0, 0, 0, 0
+	sc.Abe, sc.Avg, sc.Dev, sc.Nul, sc.Val = 0, 0, 0, 0, 0
+	sc.Int, sc.Gcd = 0, 0
 }
 
-// Add values to statistical calculator.
+// # Add values to statistical calculator.
 func (sc *StatCalc) Add(values ...float64) float64 {
 	for _, x := range values {
-		sc.put(x)
-	}
-	return sc.Sum
-}
-
-// Add integers to statistical calculator.
-func (sc *StatCalc) Int(items ...int) float64 {
-	for _, i := range items {
-		sc.put(float64(i))
+		sc.Put(x)
 	}
 	return sc.Sum
 }

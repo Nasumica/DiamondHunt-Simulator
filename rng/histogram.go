@@ -13,7 +13,6 @@ type Histogram struct {
 	Data       map[int]int // data
 	Min, Max   int         // range
 	Mode, Peak int         // mode
-	PMF        bool        // probability mass function
 	RNG        LCPRNG      // entropy
 	Calc       StatCalc    // calculator
 	ox, oy     float64     // origin
@@ -23,13 +22,12 @@ type Histogram struct {
 }
 
 func (h *Histogram) Reset(f ...func(x float64) float64) {
-	h.Calc.Reset()
 	h.RNG.Randomize()
+	h.Calc.Reset()
 	h.Data = map[int]int{}
 	h.f = f
 	h.Scale(1, 1)
 	h.Mode, h.Peak = 0, 0
-	h.PMF = true
 }
 
 // # Define line (x1, y1)--(x2, y2)
@@ -45,17 +43,21 @@ func (h *Histogram) Linear(x1, y1, x2, y2 float64) {
 	}
 }
 
-func (h *Histogram) Scale(sx, sy float64) {
-	h.Linear(0, 0, sx, sy)
+func (h *Histogram) Scale(dx, dy float64) {
+	h.Linear(0, 0, dx, dy)
 }
 
 func (h *Histogram) Y(x float64) float64 {
-	y := (x-h.ox)*h.k + h.oy
+	x -= h.ox
+	y := x * h.dy / h.dx
+	y += h.oy
 	return y
 }
 
 func (h *Histogram) X(y float64) float64 {
-	x := (y-h.oy)/h.k + h.ox
+	y -= h.oy
+	x := y * h.dx / h.dy
+	x += h.ox
 	return x
 }
 
@@ -73,7 +75,6 @@ func (h *Histogram) N(x float64) int {
 }
 
 func (h *Histogram) Add(x float64) {
-	h.PMF = h.PMF && x == math.Floor(x)
 	h.Calc.Add(x)
 	n := h.N(x)
 	c := h.Data[n] + 1
@@ -102,7 +103,11 @@ func (h *Histogram) Graph(width int, limit int, flags ...bool) {
 			return f
 		}
 	}
-	trim := func(s, r string) string {
+	trim := func(s string, repl ...string) string {
+		r := ""
+		if len(repl) > 0 {
+			r = repl[0]
+		}
 		l := len(s) - 1
 		for ; s[l] == '0'; l-- {
 			s = s[:l] + r + s[l+1:]
@@ -113,13 +118,14 @@ func (h *Histogram) Graph(width int, limit int, flags ...bool) {
 		return s
 	}
 	str := func(a any) string {
-		return trim(fmt.Sprintf("%.2f", a), "")
+		return trim(fmt.Sprintf("%.2f", a))
 	}
-	cumul, nozero := flag(0), flag(1)
-	df := iif(cumul, "CDF", iif(h.PMF, "PMF", "PDF"))
+	cumul, nozero, pmf := flag(0), flag(1), h.Calc.Cnt == h.Calc.Int
+	df := iif(cumul, "CDF", iif(pmf, "PMF", "PDF"))
 	fmt.Println()
-	fmt.Printf("%s %s:   n = %d   [%v, %v]   μ = %.5f  σ = %.5f\n",
-		h.Title, df, h.Calc.Cnt, str(h.Calc.Min), str(h.Calc.Max), h.Calc.Avg, h.Calc.Dev)
+	fmt.Printf("%s %s:   n = %d   [%v, %v]   μ = %v  σ = %v\n",
+		h.Title, df, h.Calc.Cnt, str(h.Calc.Min), str(h.Calc.Max),
+		str(h.Calc.Avg), str(h.Calc.Dev))
 	p, t := float64(h.Peak), float64(h.Calc.Cnt)
 	if cumul {
 		p = t
@@ -127,8 +133,8 @@ func (h *Histogram) Graph(width int, limit int, flags ...bool) {
 	s := float64(width) / p
 	lo, hi := h.Min, h.Max
 	if !nozero {
-		lo = h.RNG.Censor(h.Min, h.Mode-limit, h.Max)
-		hi = h.RNG.Censor(h.Min, h.Mode+limit, h.Max)
+		lo = h.RNG.Truncate(h.Min, h.Mode-limit, h.Max)
+		hi = h.RNG.Truncate(h.Min, h.Mode+limit, h.Max)
 	}
 	c := 0.
 	for i, d := range h.Data {
@@ -150,7 +156,7 @@ func (h *Histogram) Graph(width int, limit int, flags ...bool) {
 			if !cumul {
 				y *= h.k
 			}
-			v := trim(fmt.Sprintf("%.2f", 100*y), "") + "%"
+			v := str(100*y) + "%"
 			x := h.X(float64(i))
 			u := trim(fmt.Sprintf("%10.3f", x), " ")
 			fmt.Printf("%v  %s", u, iif(d == h.Peak, "►", " "))
@@ -289,7 +295,7 @@ func HistTest(sample int) {
 			x := h.RNG.Geometric(p)
 			h.Add(float64(x))
 		}
-		h.Graph(100, 100)
+		h.Graph(100, 30)
 	}
 	if true {
 		n, p := h.RNG.Int(30, 70), par(0.1, 0.9, 10)
@@ -309,6 +315,28 @@ func HistTest(sample int) {
 		h.Scale(1, 1)
 		for h.Calc.Cnt < sample {
 			x := h.RNG.Triangular(a, b, mode)
+			h.Add(float64(x))
+		}
+		h.Graph(100, 100)
+	}
+	if false {
+		xm, ɑ := 1., par(1, 3)
+		h.Title = fmt.Sprintf("Pareto distribution (xm = %v, ɑ = %v)", xm, ɑ)
+		h.Reset(math.Floor)
+		h.Scale(1, 20)
+		for h.Calc.Cnt < sample {
+			x := h.RNG.Pareto(xm, ɑ)
+			h.Add(float64(x))
+		}
+		h.Graph(100, 30)
+	}
+	if false {
+		n, a, b := h.RNG.Int(2, 10), 0., 1.
+		h.Title = fmt.Sprintf("Bates distribution (n = %v, a = %v, b = %v)", n, a, b)
+		h.Reset()
+		h.Scale(1, 20)
+		for h.Calc.Cnt < sample {
+			x := h.RNG.Bates(n, a, b)
 			h.Add(float64(x))
 		}
 		h.Graph(100, 100)
