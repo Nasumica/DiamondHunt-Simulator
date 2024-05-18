@@ -14,7 +14,6 @@ type StatCalc struct {
 	Max float64 `json:"max"`           // maximum
 	Avg float64 `json:"avg"`           // average, μ
 	Dev float64 `json:"dev,omitempty"` // standard deviation, σ
-	Abe float64 `json:"abe,omitempty"` // aberation, n · variance
 	Sqr float64 `json:"sqr,omitempty"` // sum of squares, Σ x²
 	Nul int     `json:"nul,omitempty"` // zeroes count
 	Int int     `json:"int,omitempty"` // integers count
@@ -45,11 +44,8 @@ func (sc *StatCalc) Put(x float64) {
 		sc.Avg = sc.Min
 	} else {
 		n := float64(sc.Cnt)
-		sc.Val = sc.Avg
 		sc.Avg = sc.Sum / n
-		sc.Abe += (x - sc.Avg) * (x - sc.Val)
-		sc.Dev = math.Sqrt(sc.Abe / n)
-		// sc.Dev = math.Sqrt(math.Abs(n*sc.Sqr-sc.Sum*sc.Sum)) / n
+		sc.Dev = math.Sqrt(math.Abs(n*sc.Sqr-sc.Sum*sc.Sum)) / n
 	}
 	sc.Val = x
 	if x == math.Floor(x) {
@@ -69,7 +65,7 @@ func (sc *StatCalc) Put(x float64) {
 // # Reset statistical calculator.
 func (sc *StatCalc) Reset() {
 	sc.Cnt, sc.Sum, sc.Sqr, sc.Min, sc.Max = 0, 0, 0, 0, 0
-	sc.Abe, sc.Avg, sc.Dev, sc.Nul, sc.Val = 0, 0, 0, 0, 0
+	sc.Avg, sc.Dev, sc.Nul, sc.Val = 0, 0, 0, 0
 	sc.Int, sc.Gcd = 0, 0
 }
 

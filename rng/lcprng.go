@@ -468,6 +468,11 @@ func (rnd *LCPRNG) Discrete(μ, σ float) int {
 }
 
 // # Skew-normal distribution random variable.
+/*
+	δ = ɑ / sqrt(1 + ɑ²)
+	μ = ξ + ω * δ * sqrt(2 / π)
+	σ = ω * sqrt(1 - δ² * 2 / π)
+*/
 func (rnd *LCPRNG) SkewNormal(ξ, ω, ɑ float) (s float) {
 	const limit = 1024
 	if ω != 0 {
@@ -670,6 +675,11 @@ func (rnd *LCPRNG) Gamma(ɑ float, β ...float) (g float) {
 }
 
 // # Beta distribution random variable.
+/*
+	s = ɑ + β
+	μ = ɑ / s
+	σ = sqrt(ɑ * β / (s + 1)) / s
+*/
 func (rnd *LCPRNG) Beta(ɑ, β float) (b float) {
 	if ɑ > 0 && β > 0 {
 		switch { // some special cases
@@ -698,6 +708,39 @@ func (rnd *LCPRNG) BetaPrime(ɑ, β float) (b float) {
 		b /= 1 - b // Gamma(α) / Gamma(β)
 	}
 	return
+}
+
+// # Beta-binomial distribution random variable.
+/*
+	s  = ɑ + β
+	p  = ɑ / s
+	q  = 1 - p
+	μ  = n p
+	σ² = μ q (s + n) / (s + 1)
+*/
+func (rnd *LCPRNG) BetaBinomial(n int, ɑ, β float) (b int) {
+	if n > 0 && ɑ >= 0 && β >= 0 {
+		switch { // some special cases
+		case ɑ == 0:
+			b = 0
+		case β == 0:
+			b = n
+		case ɑ == 1 && β == 1:
+			b = rnd.Int(0, n) // uniform
+		case n == 1:
+			if rnd.Bernoulli(ɑ / (ɑ + β)) {
+				b = 1
+			}
+		default:
+			b = rnd.Binomial(n, rnd.Beta(ɑ, β))
+		}
+	}
+	return
+}
+
+// # Negative hypergeometric distribution random variable.
+func (rnd *LCPRNG) NegHyperGeom(w, white, black int) int {
+	return rnd.BetaBinomial(w, float(white-w+1), float(black))
 }
 
 // # Erlang distribution random variable.
@@ -902,6 +945,13 @@ func (rnd *LCPRNG) Logarithmic(a, b float) (l float) {
 }
 
 // # Benford law random integer in range [m, n].
+/*
+For m = 1, set
+	a, b = LogGG(n + 1, true)
+Then
+	μ  = n - a
+	σ² = a - a² + 2 * b
+*/
 func (rnd *LCPRNG) Benford(m, n int) (b int) {
 	if m > n {
 		m, n = n, m
@@ -951,6 +1001,11 @@ func (rnd *LCPRNG) Bates(n int, a, b float) float {
 }
 
 // # Triangulat distribution random variable.
+/*
+	c = mode
+	μ = (a + b + c) / 3
+	σ = sqrt((a * (a - b) + b * (b - c) + c * (c - a)) / 2) / 3
+*/
 func (rnd *LCPRNG) Triangular(a, b, mode float) (t float) {
 	if a > b {
 		a, b = b, a
@@ -1382,6 +1437,26 @@ func FallFact(n, k int) (f float) {
 		for f = 1; k > 0; n, k = n-1, k-1 {
 			f *= float(n)
 		}
+	}
+	return
+}
+
+// # LogGamma(n) and LogBarnesG(n) optionally scaled by ln(n).
+func LogGG(n int, scaled ...bool) (Γ, G float) {
+	if n > 1 {
+		for k := 2; k < n; k++ {
+			G += Γ
+			Γ += math.Log(float(k))
+		}
+		if len(scaled) > 0 && scaled[0] {
+			l := math.Log(float(n))
+			G /= l
+			Γ /= l
+		}
+	} else if n < 0 {
+		Γ, G = math.NaN(), math.NaN()
+	} else if n < 1 {
+		Γ, G = math.Inf(+1), math.Inf(-1)
 	}
 	return
 }
