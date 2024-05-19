@@ -156,8 +156,8 @@ func (h *Histogram) Graph(width int, limit int, flags ...bool) {
 	s := float64(width) / p
 	lo, hi := h.Min, h.Max
 	if !nozero {
-		lo = h.RNG.Truncate(h.Min, h.Mode-limit, h.Max)
-		hi = h.RNG.Truncate(h.Min, h.Mode+limit, h.Max)
+		lo = h.RNG.Censor(h.Min, h.Mode-limit, h.Max)
+		hi = h.RNG.Censor(h.Min, h.Mode+limit, h.Max)
 	}
 	c, bottom := 0., h.Peak
 	for i, d := range h.Data {
@@ -213,7 +213,7 @@ func HistTest(sample int) {
 
 	if true {
 		ɑ := par(0.5, 4)
-		β := 1.
+		β := par(0.9, 1.1)
 		h.Title = fmt.Sprintf("Gamma distribution (ɑ = %v, β = %v)", ɑ, β)
 		h.Reset()
 		h.E.μ, h.E.σ = ɑ/β, math.Sqrt(ɑ)/β
@@ -293,7 +293,7 @@ func HistTest(sample int) {
 			x := h.RNG.Exponential(ƛ)
 			h.Add(float64(x))
 		}
-		h.Graph(100, 100)
+		h.Graph(100, 40)
 		// h.Graph(100, 100, true)
 	}
 	if true {
@@ -370,6 +370,19 @@ func HistTest(sample int) {
 		h.Graph(100, 100)
 	}
 	if true {
+		k := h.RNG.Int(2, 6)
+		h.Title = fmt.Sprintf("χ² distribution (%d degrees of freedom)", k)
+		h.Reset()
+		h.Scale(1, 2)
+		h.E.μ = float64(k)
+		h.E.σ = math.Sqrt(2 * h.E.μ)
+		for h.Calc.Cnt < sample {
+			x := h.RNG.ChiSquared(k)
+			h.Add(float64(x))
+		}
+		h.Graph(100, 30)
+	}
+	if true {
 		a, b := 0., 20.
 		c := par(a+1, b-1, 1)
 		h.Title = fmt.Sprintf("Triangular distribution (a = %v, b = %v, mode = %v)", a, b, c)
@@ -425,7 +438,7 @@ func HistTest(sample int) {
 		h.Title = fmt.Sprintf("Inverse Gaussian (Wald) distribution (μ = %v, ƛ = %v)", μ, ƛ)
 		h.Reset()
 		h.E.μ, h.E.σ = μ, σ
-		h.Scale(1, 5)
+		h.Scale(1, 4)
 		for h.Calc.Cnt < sample {
 			x := h.RNG.Wald(μ, ƛ)
 			h.Add(float64(x))
@@ -453,12 +466,40 @@ func HistTest(sample int) {
 		x0, ɣ := 0., par(0.5, 2, 10)
 		h.Title = fmt.Sprintf("Cauchy distribution (x0 = %v, ɣ = %v)", x0, ɣ)
 		h.Reset()
+		h.Scale(5, 1)
 		h.E.μ, h.E.σ = math.NaN(), math.NaN()
 		for h.Calc.Cnt < sample {
 			x := h.RNG.Cauchy(x0, ɣ)
 			h.Add(float64(x))
 		}
 		h.Graph(100, 20)
+	}
+	if true {
+		ν, σ := par(1, 2, 10), par(0.5, 1.5, 10)
+		h.Title = fmt.Sprintf("Rice distribution (ν = %v, σ = %v)", ν, σ)
+		h.Reset()
+		h.Scale(1, 4)
+		for h.Calc.Cnt < sample {
+			x := h.RNG.Rice(ν, σ)
+			h.Add(float64(x))
+		}
+		h.Graph(100, 20)
+	}
+	if true {
+		balls, draw, max := 80, 20, 10
+		for play := 1; play <= max; play++ {
+			h.Title = fmt.Sprintf("KENO distribution (play = %v, draw = %v, balls = %v)", play, draw, balls)
+			h.Reset()
+			p := float64(draw) / float64(balls)
+			q := 1 - p
+			h.E.μ = float64(play) * p
+			h.E.σ = math.Sqrt(h.E.μ * q * float64(balls-play) / float64(balls-1))
+			for h.Calc.Cnt < sample {
+				x := h.RNG.HyperGeometric(draw, play, balls)
+				h.Add(float64(x))
+			}
+			h.Graph(100, play+1)
+		}
 	}
 	if false {
 		h.Title = "3 dice throw sum"
@@ -572,8 +613,7 @@ func AlgP(n int) {
 }
 
 func init() {
-	HistTest(1 * 1000 * 1000)
+	HistTest(10 * 1000000)
 	// Slicke()
 	// AlgP(2)
-	// fmt.Println(LogGamma(19))
 }

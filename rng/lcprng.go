@@ -207,8 +207,14 @@ func (rnd *LCPRNG) Sample(k int, a *list) list {
 }
 
 // # Hypergeometric distribution random variable.
-//
-//	p(hits) = HypGeomDist(hits, draw, succ, size)
+/*
+	p  = draw / size
+	q  = 1 - p
+	μ  = succ · p
+	σ² = μ · q · (size - succ) / (size - 1)
+with
+	prob(hits) = HypGeomDist(hits, draw, succ, size)
+*/
 func (rnd *LCPRNG) HyperGeometric(draw, succ, size int) (hits int) {
 	if size >= draw && size >= succ {
 		for ; draw > 0 && succ > 0; draw-- {
@@ -410,9 +416,9 @@ func (rnd *LCPRNG) Pascal(r int, p float) (n float) {
 
 // # Geometric distribution random variable.
 /*
-	q  = 1 - p
-	μ  = q / p
-	σ² = q / p²
+	q = 1 - p
+	μ = q / p
+	σ = sqrt(q) / p
 */
 func (rnd *LCPRNG) Geometric(p float) float {
 	return rnd.Pascal(1, p)
@@ -420,8 +426,10 @@ func (rnd *LCPRNG) Geometric(p float) float {
 
 // # Rayleigh distribution random variable.
 /*
-	μ = ς · sqrt(π / 2)       = ς · 1.25331413731550025120788264240552
-	σ = ς · sqrt((4 - π) / 2) = ς · 0.65513637756203355309393588562466
+	μ² + σ² = ς² + ς²
+where
+	μ = ς · sqrt(π/2)     = ς · 1.25331413731550025120788264240552
+	σ = ς · sqrt(2 - π/2) = ς · 0.65513637756203355309393588562466
 */
 func (rnd *LCPRNG) Rayleigh(ς float) float {
 	if ς != 0 {
@@ -470,8 +478,8 @@ func (rnd *LCPRNG) Discrete(μ, σ float) int {
 // # Skew-normal distribution random variable.
 /*
 	δ = ɑ / sqrt(1 + ɑ²)
-	μ = ξ + ω * δ * sqrt(2 / π)
-	σ = ω * sqrt(1 - δ² * 2 / π)
+	μ = ξ + ω · δ · sqrt(2 / π)
+	σ = ω * sqrt(1 - δ² · 2 / π)
 */
 func (rnd *LCPRNG) SkewNormal(ξ, ω, ɑ float) (s float) {
 	const limit = 1024
@@ -595,8 +603,8 @@ func (rnd *LCPRNG) Skellam(μ1, μ2 float) (n int) {
 
 // # Hermite distribution random variable.
 //
-//	μ  = ɑ₁ + 2ɑ₂
-//	σ² = ɑ₁ + 4ɑ₂
+//	μ  = ɑ₁ + 2·ɑ₂
+//	σ² = ɑ₁ + 4·ɑ₂
 func (rnd *LCPRNG) Hermite(ɑ1, ɑ2 float) (n int) {
 	if ɑ1 >= 0 && ɑ2 >= 0 {
 		n = rnd.Poisson(ɑ1) + 2*rnd.Poisson(ɑ2)
@@ -608,7 +616,7 @@ func (rnd *LCPRNG) Hermite(ɑ1, ɑ2 float) (n int) {
 /*
 Sum of k squared Gauss randoms.
 	μ  = k
-	σ² = 2 k
+	σ² = 2·k
 */
 func (rnd *LCPRNG) ChiSquared(k int) (x float) {
 	const limit = 256
@@ -678,7 +686,7 @@ func (rnd *LCPRNG) Gamma(ɑ float, β ...float) (g float) {
 /*
 	s = ɑ + β
 	μ = ɑ / s
-	σ = sqrt(ɑ * β / (s + 1)) / s
+	σ = sqrt(ɑ · β / (s + 1)) / s
 */
 func (rnd *LCPRNG) Beta(ɑ, β float) (b float) {
 	if ɑ > 0 && β > 0 {
@@ -702,6 +710,10 @@ func (rnd *LCPRNG) Beta(ɑ, β float) (b float) {
 }
 
 // # Beta-prime distribution random variable.
+/*
+	μ = ɑ / (β - 1)
+	σ = sqrt(ɑ · (ɑ + β - 1) / (β - 2)) / (β - 1)
+*/
 func (rnd *LCPRNG) BetaPrime(ɑ, β float) (b float) {
 	b = rnd.Beta(ɑ, β)
 	if b != 0 && b != 1 {
@@ -715,8 +727,8 @@ func (rnd *LCPRNG) BetaPrime(ɑ, β float) (b float) {
 	s  = ɑ + β
 	p  = ɑ / s
 	q  = 1 - p
-	μ  = n p
-	σ² = μ q (s + n) / (s + 1)
+	μ  = n · p
+	σ² = μ · q · (s + n) / (s + 1)
 */
 func (rnd *LCPRNG) BetaBinomial(n int, ɑ, β float) (b int) {
 	if n > 0 && ɑ >= 0 && β >= 0 {
@@ -764,7 +776,7 @@ func (rnd *LCPRNG) InvGamma(ɑ, β float) float {
 /*
 Normal distribution with
 	μ  = 0
-	σ² = ν / χ²(ν)
+	σ² = ν / χ²(ν) = v / (v - 2) for v > 2
 For ν -> ∞, σ -> 1
 	StudentsT(∞) = Normal(0, 1) = Gauss()
 */
@@ -950,7 +962,7 @@ For m = 1, set
 	a, b = LogGG(n + 1, true)
 Then
 	μ  = n - a
-	σ² = a - a² + 2 * b
+	σ² = a - a² + 2·b
 */
 func (rnd *LCPRNG) Benford(m, n int) (b int) {
 	if m > n {
@@ -961,7 +973,7 @@ func (rnd *LCPRNG) Benford(m, n int) (b int) {
 			b = m
 		} else {
 			b = int(math.Exp(rnd.Range(math.Log(float(m)), math.Log(float(n)+1))))
-			b = rnd.Truncate(m, b, n)
+			b = rnd.Censor(m, b, n)
 		}
 	}
 	return
@@ -989,7 +1001,7 @@ func (rnd *LCPRNG) IrwinHall(n int) (x float) {
 // # Bates distribution random variable.
 /*
 	μ  = (a + b) / 2
-	σ² = (b - a)² / (12 n)
+	σ² = (b - a)² / (12·n)
 */
 func (rnd *LCPRNG) Bates(n int, a, b float) float {
 	if n > 0 {
@@ -1004,7 +1016,7 @@ func (rnd *LCPRNG) Bates(n int, a, b float) float {
 /*
 	c = mode
 	μ = (a + b + c) / 3
-	σ = sqrt((a * (a - b) + b * (b - c) + c * (c - a)) / 2) / 3
+	σ = sqrt((a·(a - b) + b·(b - c) + c·(c - a)) / 2) / 3
 */
 func (rnd *LCPRNG) Triangular(a, b, mode float) (t float) {
 	if a > b {
@@ -1087,16 +1099,15 @@ Calculated by race simulation standing list.
 func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) {
 	cars := len(*tuning) // number of cars
 
-	if podium > cars { // trim podium
-		podium = cars
-	}
-	if podium <= 0 { // race canceled
+	if podium = rnd.Censor(0, podium, cars); podium == 0 { // race canceled
 		return
 	}
 
 	stand = make(list, podium) // standing list
-	place, finish := 0, 0      // current place and count
-	pos, neg := 0, 0           // positive and negative total tunings
+	var place int              // current place
+	var finish int             // cars count
+	var pos int                // positive total tunings
+	var neg int                // negative total tunings
 	var head, body, tail list  // cars list
 
 	// Gentlemen, start your engines!
@@ -1173,7 +1184,10 @@ func (rnd *LCPRNG) Forest(n int) (f string) {
 	return
 }
 
-// # Cut deck of cards.
+// # Cut deck of cards near middle.
+//
+//	μ  = len(deck) / 2
+//	σ² = len(deck) / 4
 func (rnd *LCPRNG) CutDeck(deck *list) (l, r list) {
 	if n := len(*deck); n > 0 {
 		n = rnd.Binomial(n, 0.5)
@@ -1217,7 +1231,7 @@ func (rnd *LCPRNG) RiffleShuffle(deck *list) {
 // # List of n random integers which sum is equal to s.
 //
 //	μ  = s / n
-//	σ² = μ ✶ (1 - 1 / n)
+//	σ² = μ · (1 - 1 / n)
 //
 // Deli špil od s karata na n približno jednakih delova.
 //
@@ -1387,10 +1401,10 @@ func (rnd *LCPRNG) Lucky6() list {
 	return rnd.Mixer(49)
 }
 
-// # Truncate value to range [min, nax].
+// # Censor value to range [min, nax].
 //
-// Used to truncate other distributions.
-func (rnd *LCPRNG) Truncate(min, value, max int) int {
+// Used to censor other distributions.
+func (rnd *LCPRNG) Censor(min, value, max int) int {
 	if min > max {
 		min, max = max, min
 	}
@@ -1443,7 +1457,8 @@ func FallFact(n, k int) (f float) {
 
 // # LogGamma(n) and LogBarnesG(n) optionally scaled by ln(n).
 func LogGG(n int, scaled ...bool) (Γ, G float) {
-	if n > 1 {
+	switch {
+	case n > 1:
 		for k := 2; k < n; k++ {
 			G += Γ
 			Γ += math.Log(float(k))
@@ -1453,10 +1468,10 @@ func LogGG(n int, scaled ...bool) (Γ, G float) {
 			G /= l
 			Γ /= l
 		}
-	} else if n < 0 {
-		Γ, G = math.NaN(), math.NaN()
-	} else if n < 1 {
+	case n == 0:
 		Γ, G = math.Inf(+1), math.Inf(-1)
+	case n < 0:
+		Γ, G = math.NaN(), math.NaN()
 	}
 	return
 }
