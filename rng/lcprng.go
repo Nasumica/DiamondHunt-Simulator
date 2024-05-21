@@ -236,6 +236,28 @@ func (rnd *LCPRNG) HyperGeometric(draw, succ, size int) (hits int) {
 	return
 }
 
+// # Negative hypergeometric distribution random variable.
+/*
+	p  = miss / (size - fail + 1)
+	q  = 1 - p
+	μ  = fail · p
+	σ² = μ · q · (size + 1) / (size - fail + 2)
+*/
+func (rnd *LCPRNG) NegHyperGeometric(miss, fail, size int) (draw int) {
+	if miss <= fail && miss+fail <= size {
+		for miss > 0 {
+			if rnd.Choose(size, fail) {
+				draw++
+				fail--
+			} else {
+				miss--
+			}
+			size--
+		}
+	}
+	return
+}
+
 // # Random list index for non-empty list else -1.
 func (rnd *LCPRNG) Index(items *list) int {
 	return rnd.Choice(len(*items))
@@ -349,6 +371,18 @@ func (rnd *LCPRNG) Bernoulli(p float) bool {
 	return (p >= 1) || (p > 0 && p > rnd.Random())
 }
 
+// # Random bit: 1 with probability p, else 0.
+//
+//	μ  = p
+//	σ² = p  - p²
+func (rnd *LCPRNG) Bit(p float) int {
+	if rnd.Bernoulli(p) {
+		return 1
+	} else {
+		return 0
+	}
+}
+
 // # Rademacher distribution random variable {-x or x}.
 //
 // Random sign of the given number.
@@ -372,9 +406,9 @@ func (rnd *LCPRNG) Binomial(n int, p float) (b int) {
 	} else if p >= 1 {
 		return n
 	}
-	const limit = 50
+	const limit, y = 50, 9
 	x, q := float(n), 1-p
-	if (n > limit) && (x*p > 9*q) && (x*q > 9*p) { // Central Limit Theorem
+	if (n > limit) && (x*p > y*q) && (x*q > y*p) { // Central Limit Theorem
 		x *= p           // μ
 		q *= x           // σ²
 		q = math.Sqrt(q) // σ
@@ -383,9 +417,7 @@ func (rnd *LCPRNG) Binomial(n int, p float) (b int) {
 		}
 	} else {
 		for ; n > 0; n-- {
-			if rnd.Bernoulli(p) {
-				b++
-			}
+			b += rnd.Bit(p)
 		}
 	}
 	return
@@ -471,15 +503,25 @@ func (rnd *LCPRNG) Normal(μ, σ float) float {
 }
 
 // # Discrete normal distribution random variable.
-func (rnd *LCPRNG) Discrete(μ, σ float) int {
-	return int(math.Round(rnd.Normal(μ, σ)))
+//
+// Default quantization method = round(x).
+func (rnd *LCPRNG) Discrete(μ, σ float, quantize ...func(x float) float) int {
+	x := rnd.Normal(μ, σ)
+	if len(quantize) == 0 {
+		x = math.Round(x)
+	} else {
+		for _, f := range quantize {
+			x = f(x)
+		}
+	}
+	return int(x)
 }
 
 // # Skew-normal distribution random variable.
 /*
-	δ = ɑ / sqrt(1 + ɑ²)
+	δ = ɑ / sqrt(ɑ² + 1) = ɑ / hypot(ɑ, 1)
 	μ = ξ + ω · δ · sqrt(2 / π)
-	σ = ω * sqrt(1 - δ² · 2 / π)
+	σ = ω · sqrt(1 - δ² · 2 / π)
 */
 func (rnd *LCPRNG) SkewNormal(ξ, ω, ɑ float) (s float) {
 	const limit = 1024
@@ -552,11 +594,15 @@ func (rnd *LCPRNG) Cauchy(x0, ɣ float) float {
 // # Tukey distribution random variable.
 func (rnd *LCPRNG) Tukey(ƛ float) float {
 	p := rnd.Random()
-	q := 1 - p
-	if ƛ == 0 {
-		return math.Log(p / q)
-	} else {
-		return (math.Pow(p, ƛ) - math.Pow(q, ƛ)) / ƛ
+	switch ƛ {
+	case 0:
+		return math.Log(1/p - 1) // Logistic
+	case 1:
+		return 2*p - 1 // Uniform (-1, 1)
+	case 2:
+		return p - 0.5 // Uniform (-1/2, 1/2)
+	default:
+		return (math.Pow(p, ƛ) - math.Pow(1-p, ƛ)) / ƛ
 	}
 }
 
@@ -565,7 +611,7 @@ func (rnd *LCPRNG) Tukey(ƛ float) float {
 //	σ = s · π / sqrt(3) = s · 1.8137993642342178505940782576422
 func (rnd *LCPRNG) Logistic(μ, s float) float {
 	if s != 0 {
-		s *= rnd.Tukey(0)
+		s *= math.Log(1/rnd.Random() - 1)
 	}
 	return μ + s
 }
@@ -740,9 +786,7 @@ func (rnd *LCPRNG) BetaBinomial(n int, ɑ, β float) (b int) {
 		case ɑ == 1 && β == 1:
 			b = rnd.Int(0, n) // uniform
 		case n == 1:
-			if rnd.Bernoulli(ɑ / (ɑ + β)) {
-				b = 1
-			}
+			b = rnd.Bit(ɑ / (ɑ + β))
 		default:
 			b = rnd.Binomial(n, rnd.Beta(ɑ, β))
 		}
@@ -750,9 +794,17 @@ func (rnd *LCPRNG) BetaBinomial(n int, ɑ, β float) (b int) {
 	return
 }
 
-// # Negative hypergeometric distribution random variable.
-func (rnd *LCPRNG) NegHyperGeom(w, white, black int) int {
-	return rnd.BetaBinomial(w, float(white-w+1), float(black))
+// # Pólya distribution random variable.
+/*
+	μ  = n · p
+	σ² = μ · (1 - p) · (ɑ · n + 1) / (ɑ + 1)
+*/
+func (rnd *LCPRNG) Polya(n int, p, ɑ float) int {
+	if n > 0 && p > 0 && ɑ > 0 {
+		return rnd.BetaBinomial(n, p/ɑ, (1-p)/ɑ)
+	} else {
+		return 0
+	}
 }
 
 // # Erlang distribution random variable.

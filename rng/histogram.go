@@ -31,14 +31,13 @@ func (h *Histogram) Reset(f ...func(x float64) float64) {
 	h.f = f
 	h.Scale(1, 1)
 	h.Mode, h.Peak = 0, 0
-	h.E.μ = 0
-	h.E.σ = 0
+	h.E.μ, h.E.σ = 0, 0
 	h.watch = time.Now()
 }
 
-func (h *Histogram) Eplased(n int) (float64, float64) {
+func (h *Histogram) Eplased() (float64, float64) {
 	s := time.Since(h.watch).Seconds()
-	return s, float64(n) / s
+	return s, float64(h.Calc.Cnt) / s
 }
 
 // # Define line (x1, y1)--(x2, y2)
@@ -136,18 +135,17 @@ func (h *Histogram) Graph(width int, limit int, flags ...bool) {
 		}
 		return trim(fmt.Sprintf("%.2f", a))
 	}
-	_, speed := h.Eplased(h.Calc.Cnt)
+	elapsed, speed := h.Eplased()
 	cumul, nozero, pmf := flag(0), flag(1), h.Calc.Cnt == h.Calc.Int
 	df := iif(cumul, "CDF", iif(pmf, "PMF", "PDF"))
 	fmt.Println()
-	fmt.Printf("%s %s:  %d randoms  [%v, %v]   μ = %v  σ = %v",
-		h.Title, df, h.Calc.Cnt, str(h.Calc.Min), str(h.Calc.Max),
+	fmt.Printf("%s %s:  [%v, %v]  μ = %v  σ = %v",
+		h.Title, df, str(h.Calc.Min), str(h.Calc.Max),
 		str(h.Calc.Avg), str(h.Calc.Dev))
 	if h.E.μ != 0 || h.E.σ != 0 {
 		fmt.Printf("  (expected = %v ± %v)", str(h.E.μ), str(h.E.σ))
 	}
 	freq := int64(math.Round(speed))
-	fmt.Printf("  f = %d.%.6d M / s", freq/1000000, freq%1000000)
 	fmt.Println()
 	p, t := float64(h.Peak), float64(h.Calc.Cnt)
 	if cumul {
@@ -182,7 +180,16 @@ func (h *Histogram) Graph(width int, limit int, flags ...bool) {
 			if !cumul {
 				y *= h.k
 			}
-			v := str(100*y) + "%"
+			v := ""
+			if pmf {
+				v = str(100*y) + "%"
+			} else {
+				if y >= 1 {
+					v = trim(fmt.Sprintf("%.3f", y))
+				} else {
+					v = trim(fmt.Sprintf("%.5f", y))
+				}
+			}
 			x := h.X(float64(i))
 			u := trim(fmt.Sprintf("%10.3f", x), " ")
 			mark := " "
@@ -196,10 +203,13 @@ func (h *Histogram) Graph(width int, limit int, flags ...bool) {
 			fmt.Println()
 		}
 	}
+	if true {
+		fmt.Printf("%d randoms  t = %.3f\"  f = %d.%.6d M / s", h.Calc.Cnt, elapsed, freq/1000000, freq%1000000)
+		fmt.Println()
+	}
 }
 
-func HistTest(sample int) {
-	var h Histogram
+func (h *Histogram) StressTest(sample int) *Histogram {
 	h.Reset()
 
 	par := func(a, b float64, q ...float64) float64 {
@@ -213,7 +223,7 @@ func HistTest(sample int) {
 
 	if true {
 		ɑ := par(0.5, 4)
-		β := par(0.9, 1.1)
+		β := par(0.9, 1.1, 4)
 		h.Title = fmt.Sprintf("Gamma distribution (ɑ = %v, β = %v)", ɑ, β)
 		h.Reset()
 		h.E.μ, h.E.σ = ɑ/β, math.Sqrt(ɑ)/β
@@ -501,6 +511,24 @@ func HistTest(sample int) {
 			h.Graph(100, play+1)
 		}
 	}
+	if true {
+		wins, balls := 6, 49
+		for play := wins; play <= wins+4; play++ {
+			fail := balls - play
+			h.Title = fmt.Sprintf("Lucky 6 distribution (wins = %v, play = %v, balls= %v)", wins, play, balls)
+			h.Reset()
+			p := float64(wins) / float64(play+1)
+			q := 1 - p
+			h.E.μ = float64(fail) * p
+			h.E.σ = math.Sqrt(h.E.μ * q * float64(balls+1) / float64(play+2))
+			h.E.μ += float64(wins)
+			for h.Calc.Cnt < sample {
+				x := h.RNG.NegHyperGeometric(wins, fail, balls) + wins
+				h.Add(float64(x))
+			}
+			h.Graph(100, 100)
+		}
+	}
 	if false {
 		h.Title = "3 dice throw sum"
 		h.Reset()
@@ -510,7 +538,7 @@ func HistTest(sample int) {
 		}
 		h.Graph(100, 100)
 	}
-	if false {
+	if true {
 		h.Title = "Sic-Bo"
 		h.Reset()
 		for h.Calc.Cnt < sample {
@@ -522,8 +550,9 @@ func HistTest(sample int) {
 			}
 			h.Add(float64(x))
 		}
-		h.Graph(100, 100, false, true)
+		h.Graph(60, 0, false, true)
 	}
+	return h
 }
 
 func Slicke() {
@@ -613,7 +642,7 @@ func AlgP(n int) {
 }
 
 func init() {
-	HistTest(10 * 1000000)
+	new(Histogram).StressTest(1000000)
 	// Slicke()
 	// AlgP(2)
 }
