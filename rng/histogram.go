@@ -369,12 +369,22 @@ func (h *Histogram) StressTest(sample int) *Histogram {
 	}
 	if true {
 		n, p := h.RNG.Int(30, 70), par(0.1, 0.9, 10)
+		q := 1 - p
 		h.Title = fmt.Sprintf("Binomial distribution (n = %d, p = %v)", n, p)
 		h.Reset()
 		h.E.μ = float64(n) * p
-		h.E.σ = math.Sqrt(h.E.μ * (1 - p))
+		h.E.σ = math.Sqrt(h.E.μ * q)
 		for h.Calc.Cnt < sample {
 			x := h.RNG.Binomial(n, p)
+			h.Add(float64(x))
+		}
+		h.Graph(100, 100)
+		μ, σ := h.E.μ, h.E.σ
+		h.Title = fmt.Sprintf("Discrete-normal distribution (μ = %v, σ² = %.2f)", μ, μ*q)
+		h.Reset()
+		h.E.μ, h.E.σ = μ, σ
+		for h.Calc.Cnt < sample {
+			x := h.RNG.Discrete(μ, σ)
 			h.Add(float64(x))
 		}
 		h.Graph(100, 100)
@@ -642,7 +652,7 @@ func AlgP(n int) {
 }
 
 func init() {
-	new(Histogram).StressTest(1000000)
+	// new(Histogram).StressTest(10000000)
 	// Slicke()
 	// AlgP(2)
 }

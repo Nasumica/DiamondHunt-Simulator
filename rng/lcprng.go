@@ -507,14 +507,10 @@ func (rnd *LCPRNG) Normal(μ, σ float) float {
 // Default quantization method = round(x).
 func (rnd *LCPRNG) Discrete(μ, σ float, quantize ...func(x float) float) int {
 	x := rnd.Normal(μ, σ)
-	if len(quantize) == 0 {
-		x = math.Round(x)
-	} else {
-		for _, f := range quantize {
-			x = f(x)
-		}
+	for _, f := range quantize {
+		x = f(x)
 	}
-	return int(x)
+	return int(math.Round(x))
 }
 
 // # Skew-normal distribution random variable.
@@ -573,10 +569,26 @@ func (rnd *LCPRNG) Laplace(μ, b float) float {
 	return μ + b
 }
 
+// # Gumbel distribution random variable.
+/*
+	γ = 0.57721566490153286060651209008240243104215933593992 (Euler-Mascheroni constant)
+	μ = m + β · γ
+	σ = β · π / sqrt(6) = β · 1.282549830161864095544036359671
+*/
+func (rnd *LCPRNG) Gumbel(m, β float) float {
+	if β != 0 {
+		β *= -math.Log(rnd.Exponential())
+	}
+	return m + β
+}
+
 // # Suzuki distribution random variable.
-//
-//	μ  = exp(m + ν²/2) · sqrt(π/2)
-//	σ² = exp(2·m + ν²) · (2·exp(ν²) - π/2)
+/*
+	w  =  ν²
+	t  = exp(2·m + w)
+	μ² = t · π/2
+	σ² = t · (2·exp(w) - π/2)
+*/
 func (rnd *LCPRNG) Suzuki(m, ν float) float {
 	return rnd.Rayleigh(rnd.LogNormal(m, ν))
 }
@@ -843,12 +855,20 @@ func (rnd *LCPRNG) StudentsT(ν float) (t float) {
 	return
 }
 
-// # Snedecor's F-distribution random variable.
+// # Snedecor's F-ratio distribution random variable.
 //
-//	(χ²(d₁) / d₁) / (χ²(d₂) / d₂)
+//	f = (χ²(d₁) / d₁) / (χ²(d₂) / d₂)
 func (rnd *LCPRNG) SnedecorsF(d1, d2 float) (f float) {
 	if d1 > 0 && d2 > 0 {
 		f = rnd.BetaPrime(d1/2, d2/2) * d2 / d1
+	}
+	return
+}
+
+// # Fisher Z-distribution random variable.
+func (rnd *LCPRNG) FisherZ(d1, d2 float) (f float) {
+	if f = rnd.SnedecorsF(d1, d2); f > 0 {
+		f = math.Log(f) / 2
 	}
 	return
 }
@@ -1196,7 +1216,7 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) {
 				stand[place] = (*car)[i]
 				finish++
 			}
-			place += dir
+			place += dir // next place on podium
 			l--
 			copy((*car)[i:], (*car)[i+1:]) // remove car
 			(*car) = (*car)[:l]            // from track
@@ -1357,15 +1377,27 @@ func (rnd *LCPRNG) Rice(ν, σ float) float {
 	}
 }
 
-// # Color pixel random dither.
-func (rnd *LCPRNG) Dither(r, g, b byte) bool {
+// # Color pixel random dither (with γ correction).
+func (rnd *LCPRNG) Dither(r, g, b byte, γ ...float) bool {
 	const ( // CIELAB white-point
 		x = 0.212671232040624
 		y = 0.715159645674898
 		z = 1 - (x + y)
+		f = 255
 	)
-	gray := float(r)*x + float(g)*y + float(b)*z
-	return rnd.Bernoulli(gray / 255)
+	var p float = 1
+	if r < f || g < f || b < f {
+		p = (float(r)*x + float(g)*y + float(b)*z) / f
+	}
+	if 0 < p && p < 1 && len(γ) > 0 {
+		c := γ[0] // correction
+		if c < 0 {
+			p = math.Pow(p, 1/(1-c))
+		} else if c > 0 {
+			p = math.Pow(p, 1+c)
+		}
+	}
+	return rnd.Bernoulli(p)
 }
 
 // # House edge random variable for given return-to-player.
@@ -1601,7 +1633,7 @@ func PoissonDist(n int, ƛ float) (prob array, rest float) {
 			} else {
 				prob[0] = math.Exp(-ƛ)
 				for i := 1; i <= n; i++ {
-					prob[i] = prob[i-1] * ƛ / float64(i)
+					prob[i] = prob[i-1] * ƛ / float(i)
 				}
 				var b Babushka
 				rest = math.Max(0, 1-b.Sum(prob...))
