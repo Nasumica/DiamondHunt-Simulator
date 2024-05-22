@@ -1383,18 +1383,18 @@ func (rnd *LCPRNG) Dither(r, g, b byte, γ ...float) bool {
 		x = 0.212671232040624
 		y = 0.715159645674898
 		z = 1 - (x + y)
-		f = 255
+		w = 255
 	)
 	var p float = 1
-	if r < f || g < f || b < f {
-		p = (float(r)*x + float(g)*y + float(b)*z) / f
-	}
-	if 0 < p && p < 1 && len(γ) > 0 {
-		c := γ[0] // correction
-		if c < 0 {
-			p = math.Pow(p, 1/(1-c))
-		} else if c > 0 {
-			p = math.Pow(p, 1+c)
+	if r < w || g < w || b < w {
+		p = (float(r)*x + float(g)*y + float(b)*z) / w
+		if 0 < p && len(γ) > 0 {
+			c := γ[0] // correction
+			if c < 0 {
+				p = math.Pow(p, 1/(1-c))
+			} else if c > 0 {
+				p = math.Pow(p, 1+c)
+			}
 		}
 	}
 	return rnd.Bernoulli(p)
