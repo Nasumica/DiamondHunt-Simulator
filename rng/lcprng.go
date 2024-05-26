@@ -198,10 +198,10 @@ func (rnd *LCPRNG) Combination(n, k int) (c list) {
 }
 
 // # Random sample of k elements.
-func (rnd *LCPRNG) Sample(k int, a *list) list {
-	s := rnd.Combination(len(*a), k)
+func (rnd *LCPRNG) Sample(k int, a list) list {
+	s := rnd.Combination(len(a), k)
 	for i, j := range s {
-		s[i] = (*a)[j]
+		s[i] = a[j]
 	}
 	return s
 }
@@ -238,17 +238,17 @@ func (rnd *LCPRNG) HyperGeometric(draw, succ, size int) (hits int) {
 
 // # Negative hypergeometric distribution random variable.
 /*
-	p  = miss / (size - fail + 1)
+	p  = miss / (size - succ + 1)
 	q  = 1 - p
-	μ  = fail · p
-	σ² = μ · q · (size + 1) / (size - fail + 2)
+	μ  = succ · p
+	σ² = μ · q · (size + 1) / (size - succ + 2)
 */
-func (rnd *LCPRNG) NegHyperGeometric(miss, fail, size int) (draw int) {
-	if miss <= fail && miss+fail <= size {
+func (rnd *LCPRNG) NegHyperGeometric(miss, succ, size int) (draw int) {
+	if miss <= succ && miss+succ <= size {
 		for miss > 0 {
-			if rnd.Choose(size, fail) {
+			if rnd.Choose(size, succ) {
 				draw++
-				fail--
+				succ--
 			} else {
 				miss--
 			}
@@ -259,25 +259,25 @@ func (rnd *LCPRNG) NegHyperGeometric(miss, fail, size int) (draw int) {
 }
 
 // # Random list index for non-empty list else -1.
-func (rnd *LCPRNG) Index(items *list) int {
-	return rnd.Choice(len(*items))
+func (rnd *LCPRNG) Index(items list) int {
+	return rnd.Choice(len(items))
 }
 
 // # Random item from non-empty list else default.
-func (rnd *LCPRNG) Item(items *list, def int) int {
+func (rnd *LCPRNG) Item(items list, def int) int {
 	if i := rnd.Index(items); i < 0 {
 		return def
 	} else {
-		return (*items)[i]
+		return items[i]
 	}
 }
 
 // # Random value from non-empty array else default.
-func (rnd *LCPRNG) Value(values *array, def float) float {
-	if n := rnd.Choice(len(*values)); n < 0 {
+func (rnd *LCPRNG) Value(values array, def float) float {
+	if n := rnd.Choice(len(values)); n < 0 {
 		return def
 	} else {
-		return (*values)[n]
+		return values[n]
 	}
 }
 
@@ -289,13 +289,13 @@ calculate loaded uniform (weighted) random integer in range [0, len(c)).
 The sequence must be non-negative, non-decreasing.
 The last element of the sequence must be greater than 0.
 */
-func (rnd *LCPRNG) Loaded(c *list) int {
-	r := len(*c) - 1
+func (rnd *LCPRNG) Loaded(c list) int {
+	r := len(c) - 1
 	if r > 0 { // data present and not single
-		n := rnd.Choice((*c)[r]) // last c is "probabilityDown"
-		for l := 0; l < r; {     // binary search
+		n := rnd.Choice(c[r]) // last c is "probabilityDown"
+		for l := 0; l < r; {  // binary search
 			m := (l + r) / 2
-			if n < (*c)[m] { // c[m] = ∑ "probabilityUp" to m
+			if n < c[m] { // c[m] = ∑ "probabilityUp" to m
 				r = m
 			} else {
 				l = m + 1
@@ -309,12 +309,12 @@ func (rnd *LCPRNG) Loaded(c *list) int {
 //
 //	ProbabilityUp[i] = w[i]
 //	ProbabolityDown  = ∑ w
-func (rnd *LCPRNG) Weighted(w *list) int {
-	r := len(*w) - 1
+func (rnd *LCPRNG) Weighted(w list) int {
+	r := len(w) - 1
 	if r > 0 {
 		t := 0      // total mass (probabilityDown)
 		c := list{} // cumulative mass table
-		for _, m := range *w {
+		for _, m := range w {
 			if m < 0 {
 				return -1 // no negative mass
 			}
@@ -322,9 +322,9 @@ func (rnd *LCPRNG) Weighted(w *list) int {
 			c = append(c, t)
 		}
 		if t == 0 {
-			return rnd.Index(&c) // random photon
+			return rnd.Index(c) // random photon
 		} else {
-			return rnd.Loaded(&c)
+			return rnd.Loaded(c)
 		}
 	} else {
 		return r
@@ -504,7 +504,7 @@ func (rnd *LCPRNG) Normal(μ, σ float) float {
 
 // # Discrete normal distribution random variable.
 //
-// Default quantization method = round(x).
+// Default quantization method = round(x)
 func (rnd *LCPRNG) Discrete(μ, σ float, quantize ...func(x float) float) int {
 	x := rnd.Normal(μ, σ)
 	for _, f := range quantize {
@@ -968,8 +968,9 @@ func (rnd *LCPRNG) Wald(μ, ƛ float) (w float) {
 
 // # Pareto distribution random variable.
 /*
-	μ  = xm  · ɑ /  (ɑ - 1)
-	σ² = xm² · ɑ / ((ɑ - 1)² · (ɑ - 2))
+	x  = xm / (ɑ - 1)
+	μ  = x · ɑ
+	σ² = x · μ / (ɑ - 2)
 */
 func (rnd *LCPRNG) Pareto(xm, ɑ float) (p float) {
 	if xm > 0 && ɑ > 0 {
@@ -1168,8 +1169,8 @@ Calculated by race simulation standing list.
 	n = len(tuning)
 	k = podium
 */
-func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) {
-	cars := len(*tuning) // number of cars
+func (rnd *LCPRNG) Race(podium int, tuning list) (stand list) {
+	cars := len(tuning) // number of cars
 
 	if podium = rnd.Censor(0, podium, cars); podium == 0 { // race canceled
 		return
@@ -1184,7 +1185,7 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) {
 
 	// Gentlemen, start your engines!
 
-	for c, t := range *tuning {
+	for c, t := range tuning {
 		switch {
 		case t > 0: // good tuning
 			head, pos = append(head, c), pos+t
@@ -1197,8 +1198,8 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) {
 
 	// ▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀
 
-	race := func(car *list, tune, dir int) {
-		for l := len(*car); l > 0 && finish < podium; {
+	race := func(car list, tune, dir int) {
+		for l := len(car); l > 0 && finish < podium; l-- {
 			i := 0
 			if l > 1 {
 				if tune == 0 { // uniform
@@ -1207,26 +1208,24 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) {
 					n, t := rnd.Choice(tune), 0
 					for i = -1; n >= 0; n -= t {
 						i++
-						t = (*tuning)[(*car)[i]] * dir
+						t = tuning[car[i]] * dir
 					}
 					tune -= t
 				}
 			}
 			if place < podium { // chequered flag
-				stand[place] = (*car)[i]
+				stand[place] = car[i]
 				finish++
 			}
-			place += dir // next place on podium
-			l--
-			copy((*car)[i:], (*car)[i+1:]) // remove car
-			(*car) = (*car)[:l]            // from track
+			place += dir             // next place on podium
+			copy(car[i:], car[i+1:]) // remove car from track
 		}
 	}
 
-	race(&head, pos, 1)  // convoy head (favorites)
-	race(&body, 0, 1)    // convoy body (uniform)
-	place = cars - 1     // backwards
-	race(&tail, neg, -1) // convoy tail (wrecks)
+	race(head, pos, 1)  // convoy head (favorites)
+	race(body, 0, 1)    // convoy body (uniform)
+	place = cars - 1    // backwards
+	race(tail, neg, -1) // convoy tail (wrecks)
 
 	// ▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀
 
@@ -1234,8 +1233,8 @@ func (rnd *LCPRNG) Race(podium int, tuning *list) (stand list) {
 }
 
 // # Weighted-uniform random permutation.
-func (rnd *LCPRNG) Convoy(tuning *list) list {
-	return rnd.Race(len(*tuning), tuning)
+func (rnd *LCPRNG) Convoy(tuning list) list {
+	return rnd.Race(len(tuning), tuning)
 }
 
 // # Random forest.
@@ -1260,10 +1259,10 @@ func (rnd *LCPRNG) Forest(n int) (f string) {
 //
 //	μ  = len(deck) / 2
 //	σ² = len(deck) / 4
-func (rnd *LCPRNG) CutDeck(deck *list) (l, r list) {
-	if n := len(*deck); n > 0 {
+func (rnd *LCPRNG) CutDeck(deck list) (l, r list) {
+	if n := len(deck); n > 0 {
 		n = rnd.Binomial(n, 0.5)
-		l, r = append(l, (*deck)[:n]...), append(r, (*deck)[n:]...)
+		l, r = append(l, deck[:n]...), append(r, deck[n:]...)
 	}
 	return
 }
@@ -1271,19 +1270,19 @@ func (rnd *LCPRNG) CutDeck(deck *list) (l, r list) {
 // # Interleave cards from left and right hand.
 //
 // Gilbert-Shannon-Reeds model.
-func (rnd *LCPRNG) DoveTail(l, r *list) (d list) {
-	i, j := len(*l), len(*r)
+func (rnd *LCPRNG) DoveTail(l, r list) (d list) {
+	i, j := len(l), len(r)
 	n := i + j
 	d = make(list, n)
 	for n > 0 {
 		if rnd.Choose(n, i) {
 			n--
 			i--
-			d[n] = (*l)[i]
+			d[n] = l[i]
 		} else {
 			n--
 			j--
-			d[n] = (*r)[j]
+			d[n] = r[j]
 		}
 	}
 	return
@@ -1293,9 +1292,8 @@ func (rnd *LCPRNG) DoveTail(l, r *list) (d list) {
 func (rnd *LCPRNG) RiffleShuffle(deck *list) {
 	if n := len(*deck); n > 1 {
 		// by Bayer & Diaconis (n = 8 for standard deck)
-		for n = int(math.Log2(float(n)) * 1.5); n > 0; n-- {
-			l, r := rnd.CutDeck(deck)
-			(*deck) = rnd.DoveTail(&l, &r)
+		for n = int(math.Log2(float(n)) * 3 / 2); n > 0; n-- {
+			(*deck) = rnd.DoveTail(rnd.CutDeck(*deck))
 		}
 	}
 }
@@ -1323,9 +1321,11 @@ func (rnd *LCPRNG) Scatter(s, n int) (d list) {
 				}
 			} else { // Central Limit Theorem
 				for n > 1 {
-					t, c := float(s), float(n) // total and count
+					c := float(n) // count
+					μ := float(s) / c
+					σ := math.Sqrt(math.Abs(μ) * (1 - 1/c))
 					n--
-					d[n] = rnd.Discrete(t/c, math.Sqrt(math.Abs(t)*(c-1))/c)
+					d[n] = rnd.Discrete(μ, σ)
 					s -= d[n]
 				}
 				d[0] = s
@@ -1387,7 +1387,7 @@ func (rnd *LCPRNG) Dither(r, g, b byte, γ ...float) bool {
 	)
 	var p float = 1
 	if r < w || g < w || b < w {
-		p = (float(r)*x + float(g)*y + float(b)*z) / w
+		p = (x*float(r) + y*float(g) + z*float(b)) / w
 		if 0 < p && len(γ) > 0 {
 			c := γ[0] // correction
 			if c < 0 {
@@ -1437,10 +1437,10 @@ func (rnd *LCPRNG) SicBo() (dice list, virtue, freq int) {
 }
 
 // # Slot reels stop positions and grid.
-func (rnd *LCPRNG) Slot(reels *grid, height ...int) (stop list, grid grid) {
+func (rnd *LCPRNG) Slot(reels grid, height ...int) (stop list, grid grid) {
 	l := len(height)
-	for i, r := range *reels {
-		s := rnd.Index(&r)
+	for i, r := range reels {
+		s := rnd.Index(r)
 		stop = append(stop, s)
 		if s >= 0 {
 			r = append(r[s:], r[:s]...)
@@ -1613,6 +1613,15 @@ func HypGeomDist(hits, draw, succ, size int) (prob float) {
 	if prob = Binomial(succ, hits); prob != 0 {
 		if prob *= Binomial(size-succ, draw-hits); prob != 0 {
 			prob /= Binomial(size, draw)
+		}
+	}
+	return
+}
+
+func NegHyperGeomeDist(draw, miss, succ, size int) (prob float) {
+	if prob = Binomial(draw+miss-1, draw); prob != 0 {
+		if prob *= Binomial(size-draw-miss, succ-draw); prob != 0 {
+			prob /= Binomial(size, succ)
 		}
 	}
 	return

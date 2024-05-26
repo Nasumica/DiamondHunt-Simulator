@@ -508,7 +508,7 @@ func (h *Histogram) StressTest(sample int) *Histogram {
 	if true {
 		balls, draw, max := 80, 20, 10
 		for play := 1; play <= max; play++ {
-			h.Title = fmt.Sprintf("KENO distribution (play = %v, draw = %v, balls = %v)", play, draw, balls)
+			h.Title = fmt.Sprintf("KENO (hyper-geometric) distribution (play = %v, draw = %v, balls = %v)", play, draw, balls)
 			h.Reset()
 			p := float64(draw) / float64(balls)
 			q := 1 - p
@@ -525,7 +525,7 @@ func (h *Histogram) StressTest(sample int) *Histogram {
 		wins, balls := 6, 49
 		for play := wins; play <= wins+4; play++ {
 			fail := balls - play
-			h.Title = fmt.Sprintf("Lucky 6 distribution (wins = %v, play = %v, balls= %v)", wins, play, balls)
+			h.Title = fmt.Sprintf("Lucky 6 (negative hyper-geometric) distribution (wins = %v, play = %v, balls= %v)", wins, play, balls)
 			h.Reset()
 			p := float64(wins) / float64(play+1)
 			q := 1 - p
@@ -652,7 +652,7 @@ func AlgP(n int) {
 }
 
 func init() {
-	// new(Histogram).StressTest(10000000)
+	new(Histogram).StressTest(10000000)
 	// Slicke()
 	// AlgP(2)
 }
