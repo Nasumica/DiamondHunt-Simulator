@@ -14,7 +14,7 @@ type Histogram struct {
 	Data       map[int]int // data
 	Min, Max   int         // range
 	Mode, Peak int         // mode
-	RNG        LCPRNG      // entropy
+	RNG        XORshift    // entropy
 	Calc       StatCalc    // calculator
 	ox, oy     float64     // origin
 	dx, dy     float64     // delta
@@ -565,17 +565,15 @@ func (h *Histogram) StressTest(sample int) *Histogram {
 	return h
 }
 
-func Slicke() {
+func Slicke(fale, kupujem int) {
 	var h Histogram
 	h.Reset()
 	h.Title = "Slicke"
 
 	iter := 100000
 	album := 728
-	fale := 200
 	imam := album - fale
 	kesica := 6
-	kupujem := 10
 
 	s := make([]int, album)
 	t := make([]int, album)
@@ -651,8 +649,17 @@ func AlgP(n int) {
 	}
 }
 
+const (
+	milion        = 1000 * 1000
+	bilion        = milion * milion
+	trilion       = milion * bilion
+	kvadrilion    = milion * trilion
+	kvadrilijarda = 1000 * kvadrilion
+)
+
 func init() {
-	new(Histogram).StressTest(10000000)
-	// Slicke()
+	// new(Histogram).StressTest(10000000)
+	// Slicke(728-658, 3)
 	// AlgP(2)
+	// kvadrilijarda untyped int = 1000 * kvadrilion // 1.000.000.000.000.000.000.000.000.000
 }
