@@ -506,10 +506,10 @@ func (rnd *LCPRNG) Normal(μ, σ float) float {
 // # Discrete normal distribution random variable.
 //
 // Default quantization method = round(x)
-func (rnd *LCPRNG) Discrete(μ, σ float, quantize ...func(x float) float) int {
+func (rnd *LCPRNG) Discrete(μ, σ float, quantize ...func(μ, σ, x float) float) int {
 	x := rnd.Normal(μ, σ)
 	for _, f := range quantize {
-		x = f(x)
+		x = f(μ, σ, x)
 	}
 	return int(math.Round(x))
 }
@@ -1191,9 +1191,9 @@ func (rnd *LCPRNG) Race(podium int, tuning list) (stand list) {
 	for c, t := range tuning {
 		switch {
 		case t > 0: // good tuning
-			head, pos = append(head, c), pos+t
+			head, pos = append(head, c), (pos + t)
 		case t < 0: // bad tuning
-			tail, neg = append(tail, c), neg-t
+			tail, neg = append(tail, c), (neg - t)
 		default: // no tuning
 			body = append(body, c)
 		}

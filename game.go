@@ -111,16 +111,7 @@ func (scr *Screen) Hunt() (more bool) {
 		j := scr.Best[0]  // get swap index
 		h := &scr.Hand[j] // card from hand
 
-		swap := !d.IsDiam()
-
-		if !swap {
-			m := i + l + 1
-			if m >= 5 {
-				// swap = h.Load == scr.Wait && d.Load == 1
-				swap = h.Load > 1 && d.Load == 1
-			}
-			swap = force_swap
-		}
+		swap := !d.IsDiam() || (h.IsRoyal() && !d.IsRoyal())
 
 		if swap { // swap
 			h.Index, d.Index = i, j // preserve index
@@ -154,11 +145,12 @@ func (scr *Screen) Hunt() (more bool) {
 // Play one hand.
 func (scr *Screen) Play(bet float64) HuntResponse {
 	Dealer.Reset()
-	Dealer.Hide("J♦", "Q♦", "T♦", "9♦", "8♦", "7♦", "6♦", "5♦", "4♦", "3♦", "2♦", "A♦")
-	Dealer.AddCheats("K♦")
+	// Dealer.Hide("J♦", "Q♦", "T♦", "9♦", "8♦", "7♦", "6♦", "5♦", "4♦", "3♦", "2♦", "A♦")
+	// Dealer.AddCheats("K♦")
+	// Dealer.Release()
+	// Dealer.AddCheats("Q♦", "J♦", "2♦")
+	// Dealer.AddCheats("Q♦", "J♦", "2♦", "3♦", "K♦", "7♦", "5♦", "6♦")
 	scr.Deal()
-	Dealer.Release()
-	Dealer.AddCheats("Q♦", "J♦", "2♦")
 	for next := true; next; {
 		next = scr.Hunt()
 	}

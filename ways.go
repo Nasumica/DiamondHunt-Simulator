@@ -99,5 +99,5 @@ func WaysTest() {
 }
 
 func init() {
-	WaysTest()
+	// WaysTest()
 }
