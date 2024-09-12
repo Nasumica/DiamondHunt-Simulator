@@ -5,13 +5,15 @@ import "DHSimulator/rng"
 // Author: Srbislav D. Nešić, srbislav.nesic@fincore.com
 
 type Card struct {
-	Face  string
-	Kind  int
-	Suit  int
-	Card  int
-	Index int
-	Load  int
-	Code  int
+	Face    string
+	Card    int
+	Kind    int
+	Suit    int
+	Index   int
+	Load    int
+	Code    int
+	IsDiam  bool
+	IsRoyal bool
 }
 
 type Cards []Card
@@ -20,6 +22,7 @@ type Cards []Card
 func (card *Card) Reveal() {
 	kinds := [...]string{"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"}
 	suits := [...]string{"♠", "♦", "♥", "♣"} // preferans order
+	codes := []int{1, 2, 3, 5, 7, 11}
 	if c := card.Card; 1 <= c && c <= 52 {
 		c--
 		k, s := c/4, c%4
@@ -27,25 +30,21 @@ func (card *Card) Reveal() {
 		card.Kind = k + 2
 		card.Suit = s + 1
 		card.Load = 0
-		if card.Suit == 2 { // karo
+		card.IsDiam = false
+		card.IsRoyal = false
+		if card.Suit == DiamondSuit { // karo
+			card.IsDiam = true
 			if card.Kind < 11 {
 				card.Load = 1
 			} else {
+				card.IsRoyal = true
 				card.Load = 16 - card.Kind
 			}
 		}
-		card.Code = []int{1, 2, 3, 5, 7, 11}[card.Load]
+		card.Code = codes[card.Load]
 	} else {
 		card.Face = "★"
 	}
-}
-
-func (card *Card) IsDiam() bool {
-	return (card.Load > 0)
-}
-
-func (card *Card) IsRoyal() bool {
-	return (card.Load > 1)
 }
 
 func (c *Cards) Sort() {

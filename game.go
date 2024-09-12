@@ -40,6 +40,11 @@ type Screen struct {
 	Wait    int
 	Rest    int
 	Deck    int
+	RHand   int
+	RDiam   int
+	Kenta   bool
+	Force   int
+	Count   int
 }
 
 func (scr *Screen) History(s string) {
@@ -52,7 +57,7 @@ func (scr *Screen) History(s string) {
 func (scr *Screen) Strategy() {
 	s := Cards{}
 	for _, c := range scr.Hand {
-		if c.Suit == DiamondSuit { // insertion sort
+		if c.IsDiam { // insertion sort
 			i := len(s)
 			s = append(s, c)
 			for j := i - 1; (i > 0) && (s[j].Load < c.Load); j-- {
@@ -78,6 +83,16 @@ func (scr *Screen) Deal() {
 	scr.Deck = 52 - len(scr.Hand)
 	scr.Rest = 13 - len(scr.Best)
 	scr.Open = len(scr.Best)
+	scr.RHand = 0
+	scr.RDiam = 0
+	scr.Kenta = true
+	scr.Force = 0
+	scr.Count = 0
+	for _, c := range scr.Hand {
+		if c.IsRoyal {
+			scr.RHand++
+		}
+	}
 }
 
 // Draw card in diamond.
@@ -86,13 +101,11 @@ func (scr *Screen) Draw() int {
 	card.Index = len(scr.Diam)        // hand card index
 	scr.Diam = append(scr.Diam, card) // add card to diamond
 	scr.Deck--
-	if card.IsDiam() {
+	if card.IsDiam {
 		scr.Rest--
 	}
 	return card.Index
 }
-
-var force_swap = true
 
 // Hunt for diamond.
 func (scr *Screen) Hunt() (more bool) {
@@ -102,6 +115,12 @@ func (scr *Screen) Hunt() (more bool) {
 
 	i := scr.Draw()   // diamond card index
 	d := &scr.Diam[i] // card from diamond
+	if d.IsRoyal {
+		scr.RDiam++
+	}
+	if d.IsDiam {
+		scr.Count++
+	}
 
 	if scr.Verbose {
 		scr.History("[" + scr.Hand.Faces() + "][" + scr.Diam.Faces())
@@ -111,14 +130,32 @@ func (scr *Screen) Hunt() (more bool) {
 		j := scr.Best[0]  // get swap index
 		h := &scr.Hand[j] // card from hand
 
-		swap := !d.IsDiam() || (h.IsRoyal() && !d.IsRoyal())
+		swap := !d.IsDiam
+
+		if !swap { // swap diamond with diamond
+			if h.IsRoyal && !d.IsRoyal {
+				n := i + l
+				swap = n >= 4
+				if !swap && scr.Kenta && n >= 3 {
+					scr.Force++
+					swap = true
+				}
+			}
+		}
 
 		if swap { // swap
+			if h.IsRoyal {
+				scr.RHand--
+				scr.RDiam++
+			}
+			if d.IsRoyal {
+				scr.RDiam--
+			}
 			h.Index, d.Index = i, j // preserve index
 			(*h), (*d) = (*d), (*h) // swap cards
 			scr.Best = scr.Best[1:] // remove from list
 			scr.Swaps++
-			if reuse && h.IsDiam() {
+			if reuse && h.IsDiam {
 				scr.Strategy() // recalc
 			}
 			if scr.Verbose {
@@ -132,12 +169,15 @@ func (scr *Screen) Hunt() (more bool) {
 			scr.Wait = 0
 		}
 	}
+
+	scr.Kenta = scr.Kenta && d.IsRoyal
+
 	if scr.Verbose {
 		scr.History("] > ")
 	}
 
 	i++
-	more = d.IsDiam() && i < 4
+	more = d.IsDiam && i < 4
 
 	return
 }
@@ -175,10 +215,11 @@ type HuntResponse struct {
 	Swaps    int
 	Open     int
 	FLow     string
+	Close    int
 }
 
 const (
-	cat_handy    = "(0) RIYAL STRAOGHT NO SWAP"
+	cat_handy    = "(0) ROYAL STRAIGHT NO SWAP"
 	cat_straight = "(1) ROYAL STRAIGHT"
 	cat_four     = "(2) ROYAL FOUR"
 	cat_royal    = "(3) ROYAL CARD"
@@ -191,16 +232,21 @@ func (scr *Screen) Eval(bet float64) (resp HuntResponse) {
 	resp.Swaps = scr.Swaps
 	resp.Open = scr.Open
 	resp.Code = 1
+	resp.Close = scr.Count
 	// scr.Diam = Make("J♦", "Q♦", "K♦", "A♦")
-	for _, c := range scr.Hand {
-		if c.Suit == DiamondSuit {
+	resp.Diams = 0
+	for i := len(Dealer.Cards); i > Dealer.Rest; {
+		i--
+		j := Dealer.Cards[i]
+		c := CardVirtues[j]
+		if c.IsDiam {
 			resp.Diams++
 		}
 	}
 	for _, c := range scr.Diam {
-		if c.Suit == DiamondSuit {
+		if c.IsDiam {
 			resp.Count++
-			if c.Kind >= 11 {
+			if c.IsRoyal {
 				resp.Royals++
 			}
 			resp.Final = append(resp.Final, c)
@@ -208,7 +254,6 @@ func (scr *Screen) Eval(bet float64) (resp HuntResponse) {
 			resp.Code *= c.Code
 		}
 	}
-	resp.Diams += resp.Count
 	if scr.Verbose {
 		scr.History("[" + scr.Hand.Faces() + "]" + "[" + resp.Final.Faces() + "]")
 	}
@@ -297,8 +342,12 @@ func DiamondHunt(iter int, chips ...float64) {
 			play++
 			ans := scr.Play(chip)
 			opens[ans.Open]++
-			chart[ans.Open][ans.Count]++
+			// chart[ans.Open][ans.Count]++
+			chart[ans.Open][ans.Close]++
 			jp := ans.JackPot + ans.Free
+			if scr.Force > 0 {
+				AddCat("force", float64(scr.Force))
+			}
 			if ans.Total > 0 {
 				win.Add(ans.Total)
 				AddCat("total", ans.Total)
@@ -344,6 +393,7 @@ func DiamondHunt(iter int, chips ...float64) {
 			if prob > 0 {
 				rate := 1 / prob
 				fmt.Printf("  %27.2f", rate)
+				// fmt.Printf("  %12.9f%%", 100*prob)
 			}
 			fmt.Println()
 		}
@@ -352,7 +402,7 @@ func DiamondHunt(iter int, chips ...float64) {
 	fmt.Println()
 	spisak := []string{"0♦", "1♦", "2♦", "3♦", "4♦",
 		cat_handy, cat_straight, cat_four, cat_royal,
-		"total", "", cat_court, cat_free, "", "waste"}
+		"total", "", cat_court, cat_free, "", "waste", "force"}
 	for _, d := range spisak {
 		// for d, s := range CatStat {
 		s, e := CatStat[d]
@@ -360,6 +410,7 @@ func DiamondHunt(iter int, chips ...float64) {
 			prob := float64(s.Cnt) / play.Sum
 			rtp := s.Sum / bet.Sum
 			fmt.Printf("%-26s  %10d  %13.9f%%  %9.5f%%  %15.2f", d, s.Cnt, 100*prob, 100*rtp, 1/prob)
+			// fmt.Printf("  %12.9f%%", 100*prob)
 		}
 		fmt.Println()
 	}

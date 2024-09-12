@@ -912,10 +912,11 @@ func (rnd *LCPRNG) Dirichlet(ɑ ...float) (d array) {
 	σ² = Ω - μ²
 */
 func (rnd *LCPRNG) Nakagami(m, Ω float) float {
-	if m < 0.5 || Ω <= 0 {
+	if m > 0 || Ω > 0 {
+		return math.Sqrt(rnd.Gamma(m) * Ω / m)
+	} else {
 		return 0
 	}
-	return math.Sqrt(rnd.Gamma(m) * Ω / m)
 }
 
 // # Maxwell–Boltzmann distribution random variable (3 degrees of freedom).
@@ -1046,8 +1047,7 @@ func (rnd *LCPRNG) Benford(m, n int) (b int) {
 		if m == n {
 			b = m
 		} else {
-			b = int(math.Exp(rnd.Range(math.Log(float(m)), math.Log(float(n)+1))))
-			b = rnd.Censor(m, b, n)
+			b = rnd.Censor(m, int(math.Exp(rnd.Range(math.Log(float(m)), math.Log(float(n)+1)))), n)
 		}
 	}
 	return
@@ -1111,13 +1111,11 @@ func (rnd *LCPRNG) Triangular(a, b, mode float) (t float) {
 func (rnd *LCPRNG) Sort(x *list) {
 	const treshold = 16 // algorithm selection treshold
 
-	type part struct {
-		l, r int
-	}
+	type part struct{ l, r int }
 	q := part{0, len(*x) - 1}
 	queue := []part{q} // partition queue
 
-	var l, r, p int // left, right and pivot
+	var l, r, p int
 
 	qsort := func() { // Quick Sort by Sir C. A. R. Hoare (1960)
 		l, r = q.l, q.r
@@ -1366,7 +1364,7 @@ func (rnd *LCPRNG) BiNormal(μ1, μ2, σ1, σ2 float) (float, float) {
 
 // # Beckmann distribution random variable.
 //
-// Diagonal length of a rectangle with normal random sides.
+// Distance from origin of a point with normal random coordinates.
 func (rnd *LCPRNG) Beckmann(μ1, μ2, σ1, σ2 float) float {
 	return math.Hypot(rnd.BiNormal(μ1, μ2, σ1, σ2))
 }
@@ -1387,18 +1385,13 @@ func (rnd *LCPRNG) Dither(r, g, b byte, γ ...float) bool {
 		x = 0.212671232040624
 		y = 0.715159645674898
 		z = 1 - (x + y)
-		w = 255
 	)
-	var p float = 1
-	if r < w || g < w || b < w {
-		p = (x*float(r) + y*float(g) + z*float(b)) / w
-		if 0 < p && len(γ) > 0 {
-			c := γ[0] // correction
-			if c < 0 {
-				p = math.Pow(p, 1/(1-c))
-			} else if c > 0 {
-				p = math.Pow(p, 1+c)
-			}
+	p := (float(r) / 255 * x) + (float(g) / 255 * y) + (float(b) / 255 * z)
+	if len(γ) > 0 && 0 < p && p < 1 {
+		if c := γ[0]; c < 0 {
+			p = math.Pow(p, 1/(1-c))
+		} else if c > 0 {
+			p = math.Pow(p, 1+c)
 		}
 	}
 	return rnd.Bernoulli(p)
@@ -1573,7 +1566,7 @@ func Binomial(n, k int) (b float) {
 		if k <= n {
 			k = n - k
 		}
-		if 0 <= k {
+		if k >= 0 {
 			n = k - n - 1
 		}
 		if k&1 != 0 {
@@ -1622,9 +1615,11 @@ func HypGeomDist(hits, draw, succ, size int) (prob float) {
 	return
 }
 
-func NegHyperGeomeDist(draw, miss, succ, size int) (prob float) {
-	if prob = Binomial(draw+miss-1, draw); prob != 0 {
-		if prob *= Binomial(size-draw-miss, succ-draw); prob != 0 {
+// # Negative Hyper-geometric distribution probability.
+func NegHypGeomeDist(draw, miss, succ, size int) (prob float) {
+	miss += draw
+	if prob = Binomial(miss-1, draw); prob != 0 {
+		if prob *= Binomial(size-miss, succ-draw); prob != 0 {
 			prob /= Binomial(size, succ)
 		}
 	}
