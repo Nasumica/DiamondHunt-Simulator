@@ -1616,7 +1616,7 @@ func HypGeomDist(hits, draw, succ, size int) (prob float) {
 }
 
 // # Negative Hyper-geometric distribution probability.
-func NegHypGeomeDist(draw, miss, succ, size int) (prob float) {
+func NegHypGeomDist(draw, miss, succ, size int) (prob float) {
 	miss += draw
 	if prob = Binomial(miss-1, draw); prob != 0 {
 		if prob *= Binomial(size-miss, succ-draw); prob != 0 {
