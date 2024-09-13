@@ -52,6 +52,7 @@ func ShowDiamHuntProb() {
 	for i, p := range prob {
 		fmt.Printf("%d   %6.2f%%  %10.2f\n", i, 100*p, 1/p)
 	}
+	fmt.Println()
 }
 
 func main() {
@@ -61,7 +62,7 @@ func main() {
 	fmt.Println()
 	million := 1000 * 1000
 	iter := 10 * 100 * million
-	// DiamondHunt(iter)
+	DiamondHunt(iter)
 	elapsed, speed := sw.Eplased(iter)
 	fmt.Printf("%d games,  elapsed = %.3f\",  speed = %.0f games / s\n", iter, elapsed, speed)
 }

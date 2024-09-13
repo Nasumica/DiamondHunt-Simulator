@@ -1769,6 +1769,17 @@ func (b *Babushka) Total(x ...float) float {
 	return b.sum + b.cs + b.ccs
 }
 
+// # Annuity payment rate.
+func Annuity(interest float, period int) (rate float) {
+	if period := float(period); interest == 0 {
+		rate = 1 / period
+	} else {
+		period = math.Pow(interest+1, period)
+		rate = interest * period / (period - 1)
+	}
+	return
+}
+
 // # Initialization
 func init() {
 	WSOGMM.Randomize()
