@@ -1626,6 +1626,33 @@ func NegHypGeomDist(draw, miss, succ, size int) (prob float) {
 	return
 }
 
+// # Multivariate Hyper-geometric distribution probability.
+func MultiHypGeomDist(items, hits list) (prob float) {
+	m, n := len(items), len(hits)
+	k := m
+	if k < n {
+		k = n
+	}
+	size, draw := 0, 0
+	prob = 1
+	for j := 0; j < k; j++ {
+		i, h := 0, 0
+		if j < m {
+			i = items[j]
+		}
+		if j < n {
+			h = hits[j]
+		}
+		if prob *= Binomial(i, h); prob == 0 {
+			return
+		}
+		size += i
+		draw += h
+	}
+	prob /= Binomial(size, draw)
+	return
+}
+
 // # Poisson distribution probability.
 //
 //	i = 0, ..., n
@@ -1736,7 +1763,7 @@ func (b *Babushka) Reset() {
 }
 
 // # Add x to sum.
-func (b *Babushka) Add(x float) {
+func (b *Babushka) Add(x float) float {
 	b.s += x
 	t := b.sum + x
 	if math.Abs(b.sum) >= math.Abs(x) {
@@ -1753,6 +1780,7 @@ func (b *Babushka) Add(x float) {
 	}
 	b.cs = t
 	b.ccs += b.cc
+	return x
 }
 
 // # Σ x.
@@ -1770,14 +1798,15 @@ func (b *Babushka) Total(x ...float) float {
 }
 
 // # Annuity payment rate.
-func Annuity(interest float, period int) (rate float) {
-	if period := float(period); interest == 0 {
-		rate = 1 / period
+func AnnuityRate(interest float, period, months int) float {
+	m := float(months)
+	f := math.Pow(interest+1, 1/float(period))
+	p := math.Pow(f, m)
+	if p == 1 {
+		return 1 / m
 	} else {
-		period = math.Pow(interest+1, period)
-		rate = interest * period / (period - 1)
+		return p * (f - 1) / (p - 1)
 	}
-	return
 }
 
 // # Initialization
