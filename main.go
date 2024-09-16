@@ -30,17 +30,20 @@ func CalcProb(w int) (prob []float64) {
 			p := rng.HypGeomDist(h, w, 13, 52)
 			r := p
 			for d := range prob {
-				q := r
-				if d+h < w {
+				q, n := r, h+d
+				if n < w {
 					q = p * rng.NegHypGeomDist(d, h+1, 13-h, 52-w)
 				} else if d < w {
 					q = p * rng.HypGeomDist(d, w, 13-h, 52-w)
 				}
 				r -= q
-				if n := h + d; n < w {
+				if n < w {
 					prob[n] += q
 					prob[w] -= q
+				} else {
+					n = w
 				}
+				fmt.Printf("%d   %d  %d   %12.9f%%\n", n, h, d, 100*q)
 			}
 		}
 	}
