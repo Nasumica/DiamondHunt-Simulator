@@ -107,6 +107,14 @@ func (scr *Screen) Draw() int {
 	return card.Index
 }
 
+const (
+	NoStrategy = iota
+	SwapCourt
+	RiskOne
+)
+
+var Strategy = SwapCourt
+
 // Hunt for diamond.
 func (scr *Screen) Hunt() (more bool) {
 	const (
@@ -132,15 +140,22 @@ func (scr *Screen) Hunt() (more bool) {
 
 		swap := !d.IsDiam
 
-		if !swap { // swap diamond with diamond
-			if h.IsRoyal && !d.IsRoyal {
-				n := i + l
-				swap = n >= 4
-				if !swap && scr.Kenta && n >= 3 {
-					scr.Force++
-					swap = true
+		if !swap {
+			switch Strategy {
+			case SwapCourt:
+				swap = h.IsRoyal && !d.IsRoyal
+				scr.Force++
+			case RiskOne:
+				if h.IsRoyal && !d.IsRoyal {
+					n := i + l
+					swap = n >= 4
+					if !swap && scr.Kenta && n >= 3 {
+						scr.Force++
+						swap = true
+					}
 				}
 			}
+
 		}
 
 		if swap { // swap
@@ -227,6 +242,15 @@ const (
 	cat_free     = "(3) + 3♦"
 )
 
+const (
+	win_handy    = 50000
+	win_straight = 6000
+	win_four     = 850
+	win_royal    = 1
+	win_free     = 1
+	win_4        = 4
+)
+
 // Evaluate hand.
 func (scr *Screen) Eval(bet float64) (resp HuntResponse) {
 	resp.Swaps = scr.Swaps
@@ -266,26 +290,26 @@ func (scr *Screen) Eval(bet float64) (resp HuntResponse) {
 
 	switch resp.Count {
 	case 3:
-		resp.Free = 1
+		resp.Free = win_free
 	case 4:
-		resp.Win = 4
+		resp.Win = win_4
 		switch resp.Royals {
 		case 0:
 		case 4:
 			if resp.Straight {
 				if scr.Swaps == 0 {
-					resp.JackPot = 50000
+					resp.JackPot = win_handy
 					resp.Name = cat_handy
 				} else {
-					resp.JackPot = 6000
+					resp.JackPot = win_straight
 					resp.Name = cat_straight
 				}
 			} else {
-				resp.JackPot = 800
+				resp.JackPot = win_four
 				resp.Name = cat_four
 			}
 		default:
-			resp.Free = 1
+			resp.Free = win_royal
 			resp.Name = cat_royal
 		}
 	}
@@ -377,45 +401,59 @@ func DiamondHunt(iter int, chips ...float64) {
 
 	play := CatStat["play"]
 
-	for h, o := range opens {
-		fmt.Printf("%16s%-4d  %-4s  %10d", "", h, "", o)
-		prob := float64(o) / play.Sum
-		fmt.Printf("  %13.9f%%", 100*prob)
-		if prob > 0 {
-			rate := 1 / prob
-			fmt.Printf("  %27.2f", rate)
-		}
-		fmt.Println()
-		for d, c := range chart[h] {
-			fmt.Printf("%16s%-4s  %-4d  %10d", "", "", d, c)
-			prob := float64(c) / play.Sum
+	/*
+		for h, o := range opens {
+			fmt.Printf("%16s%-4d  %-4s  %10d", "", h, "", o)
+			prob := float64(o) / play.Sum
 			fmt.Printf("  %13.9f%%", 100*prob)
 			if prob > 0 {
 				rate := 1 / prob
 				fmt.Printf("  %27.2f", rate)
-				// fmt.Printf("  %12.9f%%", 100*prob)
 			}
 			fmt.Println()
+			for d, c := range chart[h] {
+				fmt.Printf("%16s%-4s  %-4d  %10d", "", "", d, c)
+				prob := float64(c) / play.Sum
+				fmt.Printf("  %13.9f%%", 100*prob)
+				if prob > 0 {
+					rate := 1 / prob
+					fmt.Printf("  %27.2f", rate)
+					// fmt.Printf("  %12.9f%%", 100*prob)
+				}
+				fmt.Println()
+			}
 		}
-	}
-
+	*/
+	fmt.Println()
+	fmt.Printf("%-30s  %10d\n", "3♦", win_free)
+	fmt.Printf("%-30s  %10d\n", "4♦", win_4)
+	fmt.Printf("%-30s  %10d\n", cat_handy, win_handy)
+	fmt.Printf("%-30s  %10d\n", cat_straight, win_straight)
+	fmt.Printf("%-30s  %10d\n", cat_four, win_four)
+	fmt.Printf("%-30s  %10d\n", cat_royal, win_royal)
 	fmt.Println()
 	spisak := []string{"0♦", "1♦", "2♦", "3♦", "4♦",
 		cat_handy, cat_straight, cat_four, cat_royal,
 		"total", "", cat_court, cat_free, "", "waste", "force"}
 	for _, d := range spisak {
-		// for d, s := range CatStat {
 		s, e := CatStat[d]
 		if e {
 			prob := float64(s.Cnt) / play.Sum
 			rtp := s.Sum / bet.Sum
 			fmt.Printf("%-26s  %10d  %13.9f%%  %9.5f%%  %15.2f", d, s.Cnt, 100*prob, 100*rtp, 1/prob)
-			// fmt.Printf("  %12.9f%%", 100*prob)
 		}
 		fmt.Println()
 	}
 	free := CatStat[cat_free].Sum
 	rtp := (win.Sum - free) / (bet.Sum - free)
-	fmt.Printf("\nrtp = %.2f%%\n", 100*rtp)
+	fmt.Println()
+	if Strategy == SwapCourt {
+		fmt.Println("strategy: swap low diamond with strongest court card")
+	} else if Strategy == RiskOne {
+		fmt.Println("strategy: risk one diamond lost")
+	} else {
+		fmt.Println("no swap diamond")
+	}
+	fmt.Printf("\nrtp = (%.0f - %.0f) / (%.0f - %.0f) =  %.2f%%\n", win.Sum, free, bet.Sum, free, 100*rtp)
 	fmt.Println()
 }

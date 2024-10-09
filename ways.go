@@ -2,9 +2,9 @@ package main
 
 import "fmt"
 
-type symbol = string
+type symbol = int
 
-type WaysItem struct {
+type WaysItemNew struct {
 	Symbol  symbol  `json:"s"`           // symbol
 	Order   int     `json:"o,omitempty"` // order: 1 =  L2R; -1 = R2L, 0 = both
 	Line    float64 `json:"l,omitempty"` // single line win amount
@@ -15,7 +15,7 @@ type WaysItem struct {
 	Payout  float64 `json:"p,omitempty"` // payout = line * ways
 }
 
-func Ways(grid [][]symbol, wild symbol) (result []WaysItem) {
+func Ways(grid [][]symbol, wild symbol) (result []WaysItemNew) {
 	width := len(grid)
 
 	symbols := map[symbol]int{} // list of symbols
@@ -27,10 +27,10 @@ func Ways(grid [][]symbol, wild symbol) (result []WaysItem) {
 		}
 	}
 
-	var wilds []WaysItem // wilds ways
+	var wilds []WaysItemNew // wilds ways
 
-	scan := func(symbol symbol) (win WaysItem) {
-		win = WaysItem{Symbol: symbol, Ways: 1}
+	scan := func(symbol symbol) (win WaysItemNew) {
+		win = WaysItemNew{Symbol: symbol, Ways: 1}
 		for _, reel := range grid {
 			count := 0
 			for _, s := range reel {
@@ -73,10 +73,12 @@ func Ways(grid [][]symbol, wild symbol) (result []WaysItem) {
 
 func WaysTest() {
 	grid := [][]symbol{
-		{"W", "W"},
-		{"A", "W"},
-		{"A", "W"},
-		{"A"},
+		{0, 0, 0, 0, 18, 12, 14, 3}, {-1, -1, -1, -1, 18, 1, 4, 4}, {-2, -2, -2, -2, 18, 13, 13, 11},
+		{-3, -3, -3, -3, 18, 11, 9, 14}, {-4, -4, -4, -4, 18, 9, 14, 14}, {-5, -5, -5, -5, 18, 13, 11, 14},
+
+		// {"A", "W"},
+		// {"B", "W"},
+		// {"C", "W"},
 		// {"W", "W", "A"},
 	}
 	n := 0
@@ -86,18 +88,14 @@ func WaysTest() {
 		for _, g := range grid {
 			if n < len(g) {
 				f = true
-				fmt.Printf("%-3s", g[n])
+				fmt.Printf("%4d", g[n])
 			}
 		}
 		fmt.Println()
 		n++
 	}
-	items := Ways(grid, "W")
+	items := Ways(grid, 18)
 	for _, w := range items {
-		fmt.Printf("%d x %s %d\n", w.Ways, w.Symbol, w.Width)
+		fmt.Printf("%2d x %2d  %d\n", w.Ways, w.Symbol, w.Width)
 	}
-}
-
-func init() {
-	// WaysTest()
 }

@@ -292,43 +292,35 @@ The last element of the sequence must be greater than 0.
 func (rnd *LCPRNG) Loaded(c list) int {
 	r := len(c) - 1
 	if r > 0 { // data present and not single
-		n := rnd.Choice(c[r]) // last c is "probabilityDown"
-		for l := 0; l < r; {  // binary search
-			m := (l + r) / 2
-			if n < c[m] { // c[m] = ∑ "probabilityUp" to m
-				r = m
-			} else {
-				l = m + 1
-			}
-		} // at this point l = r
+		if l := c[r]; l > 0 {
+			n := rnd.Choice(l)
+			for l = 0; l < r; { // binary search
+				m := (l + r) / 2
+				if n < c[m] {
+					r = m
+				} else {
+					l = m + 1
+				}
+			} // at this point l = r
+		} else {
+			r = rnd.Int(0, r) // zero weights
+		}
 	}
 	return r
 }
 
 // # Weighted-uniform random integer.
-//
-//	ProbabilityUp[i] = w[i]
-//	ProbabolityDown  = ∑ w
 func (rnd *LCPRNG) Weighted(w list) int {
-	r := len(w) - 1
-	if r > 0 {
-		t := 0      // total mass (probabilityDown)
-		c := list{} // cumulative mass table
-		for _, m := range w {
-			if m < 0 {
-				return -1 // no negative mass
-			}
-			t += m
-			c = append(c, t)
+	t := 0      // total mass
+	c := list{} // cumulative mass table
+	for _, m := range w {
+		if m < 0 {
+			return -1 // no negative mass
 		}
-		if t == 0 {
-			return rnd.Index(c) // random photon
-		} else {
-			return rnd.Loaded(c)
-		}
-	} else {
-		return r
+		t += m
+		c = append(c, t)
 	}
+	return rnd.Loaded(c)
 }
 
 // # Uniform random number in range (0, 1).
@@ -719,9 +711,8 @@ Sum of α Exponential(β) randoms.
 */
 func (rnd *LCPRNG) Gamma(ɑ float, β ...float) (g float) {
 	if ɑ > 0 {
-		t, a := math.Modf(2 * ɑ) // trunc & frac
-		if a > 0 {
-			a /= 2
+		t, a := math.Modf(2 * ɑ)
+		if a /= 2; a > 0 {
 			// Ahrens-Dieter acceptance-rejection method
 			for u, r, l, f := a+math.E, 1/a, a-1, false; !f; {
 				if rnd.Uniform(u) < math.E {
@@ -912,7 +903,7 @@ func (rnd *LCPRNG) Dirichlet(ɑ ...float) (d array) {
 	σ² = Ω - μ²
 */
 func (rnd *LCPRNG) Nakagami(m, Ω float) float {
-	if m > 0 || Ω > 0 {
+	if m > 0 && Ω > 0 {
 		return math.Sqrt(rnd.Gamma(m) * Ω / m)
 	} else {
 		return 0
@@ -1025,7 +1016,7 @@ func (rnd *LCPRNG) Logarithmic(a, b float) (l float) {
 			l = a
 		} else {
 			l = math.Exp(rnd.Range(math.Log(a), math.Log(b)))
-			l = math.Min(b, math.Max(a, l))
+			l = math.Min(math.Max(a, l), b)
 		}
 	}
 	return
@@ -1628,28 +1619,30 @@ func NegHypGeomDist(draw, miss, succ, size int) (prob float) {
 
 // # Multivariate Hyper-geometric distribution probability.
 func MultiHypGeomDist(items, hits list) (prob float) {
+	prob = 1
 	m, n := len(items), len(hits)
 	k := m
 	if k < n {
 		k = n
 	}
-	size, draw := 0, 0
-	prob = 1
-	for j := 0; j < k; j++ {
-		i, h := 0, 0
-		if j < m {
-			i = items[j]
+	if k > 0 {
+		size, draw := 0, 0
+		for j := 0; j < k; j++ {
+			i, h := 0, 0
+			if j < m {
+				i = items[j]
+			}
+			if j < n {
+				h = hits[j]
+			}
+			if prob *= Binomial(i, h); prob == 0 {
+				return
+			}
+			size += i
+			draw += h
 		}
-		if j < n {
-			h = hits[j]
-		}
-		if prob *= Binomial(i, h); prob == 0 {
-			return
-		}
-		size += i
-		draw += h
+		prob /= Binomial(size, draw)
 	}
-	prob /= Binomial(size, draw)
 	return
 }
 
@@ -1798,15 +1791,45 @@ func (b *Babushka) Total(x ...float) float {
 }
 
 // # Annuity payment rate.
-func AnnuityRate(interest float, period, months int) float {
-	m := float(months)
-	f := math.Pow(interest+1, 1/float(period))
-	p := math.Pow(f, m)
-	if p == 1 {
-		return 1 / m
-	} else {
-		return p * (f - 1) / (p - 1)
+/*
+For k = 0
+	r = 1 / n
+else
+	         k
+	r = ╌╌╌╌╌╌╌╌╌╌╌╌╌
+	    1 - (k + 1)⁻ⁿ
+*/
+func AnnuityRate(debt, interest float, period int) float {
+	n := float(period)
+	if f := 1 - math.Pow(interest+1, -n); f != 0 {
+		n = f / interest
 	}
+	return debt / n
+}
+
+func (rnd *LCPRNG) TriggerIndex(percentage ...int) (index int) {
+	percent := func(p int) *big.Rat {
+		return big.NewRat(int64(p), 100) // p% = p / 100
+	}
+	prob, sum, cumul := percent(100), 0, []int{}
+	for _, p := range percentage {
+		if p > 0 {
+			sum += p
+			if p > 100 {
+				p = 100
+			}
+			prob.Mul(prob, percent(100-p))
+		}
+		cumul = append(cumul, sum)
+	}
+	prob.Sub(percent(100), prob)
+	index = -1
+	if sum > 0 {
+		if trig, _ := prob.Float64(); rnd.Bernoulli(trig) {
+			index = rnd.Loaded(cumul)
+		}
+	}
+	return
 }
 
 // # Initialization

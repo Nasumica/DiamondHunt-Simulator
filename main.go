@@ -53,19 +53,24 @@ func CalcProb(w int) (prob []float64) {
 func ShowDiamHuntProb() {
 	prob := CalcProb(4)
 	for i, p := range prob {
-		fmt.Printf("%d   %6.2f%%  %10.2f\n", i, 100*p, 1/p)
+		fmt.Printf("%d   %12.9f%%  %10.2f\n", i, 100*p, 1/p)
 	}
 	fmt.Println()
 }
 
 func main() {
-	ShowDiamHuntProb()
+	// ShowDiamHuntProb()
 	var sw StopWatch
 	sw.Start()
 	fmt.Println()
 	million := 1000 * 1000
-	iter := 10 * 100 * million
+	iter := 50 * million
+
+	// Strategy = SwapCourt
+	// Strategy = NoStrategy
+	Strategy = RiskOne
 	DiamondHunt(iter)
+
 	elapsed, speed := sw.Eplased(iter)
 	fmt.Printf("%d games,  elapsed = %.3f\",  speed = %.0f games / s\n", iter, elapsed, speed)
 }
