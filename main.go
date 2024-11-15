@@ -50,10 +50,20 @@ func CalcProb(w int) (prob []float64) {
 	return
 }
 
+func compress(n int) (p float64) {
+	for h := 0; h <= n; h++ {
+		d := n - h
+		p += rng.Binomial(13, h) * rng.Binomial(39, 4-h) * rng.Binomial(47-n, 13-n) * rng.Binomial(n, d) / rng.Binomial(48, 13-h)
+	}
+	p /= 270725
+	return
+}
+
 func ShowDiamHuntProb() {
 	prob := CalcProb(4)
 	for i, p := range prob {
-		fmt.Printf("%d   %12.9f%%  %10.2f\n", i, 100*p, 1/p)
+		p = compress(i)
+		fmt.Printf("%d   %12.5f%%  %10.2f\n", i, 100*p, 1/p)
 	}
 	fmt.Println()
 }
@@ -64,11 +74,13 @@ func main() {
 	sw.Start()
 	fmt.Println()
 	million := 1000 * 1000
-	iter := 50 * million
+	iter := 1000 * million
 
 	// Strategy = SwapCourt
 	// Strategy = NoStrategy
-	Strategy = RiskOne
+	// Strategy = RiskOne
+	// Strategy = NoRisk
+	Strategy = NewRisk
 	DiamondHunt(iter)
 
 	elapsed, speed := sw.Eplased(iter)

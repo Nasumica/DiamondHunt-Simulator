@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"math"
 	"math/big"
+	"slices"
 	"sync"
 	"time"
 )
@@ -243,11 +244,11 @@ func (rnd *LCPRNG) HyperGeometric(draw, succ, size int) (hits int) {
 	μ  = succ · p
 	σ² = μ · q · (size + 1) / (size - succ + 2)
 */
-func (rnd *LCPRNG) NegHyperGeometric(miss, succ, size int) (draw int) {
+func (rnd *LCPRNG) NegHyperGeometric(miss, succ, size int) (hits int) {
 	if miss <= succ && miss+succ <= size {
 		for miss > 0 {
 			if rnd.Choose(size, succ) {
-				draw++
+				hits++
 				succ--
 			} else {
 				miss--
@@ -621,6 +622,30 @@ func (rnd *LCPRNG) Logistic(μ, s float) float {
 	return μ + s
 }
 
+// # Dagum distribution random variable.
+func (rnd *LCPRNG) Dagum(p, a, b float) float {
+	if p > 0 && a > 0 && b > 0 {
+		p = math.Pow(rnd.Random(), -1/p) - 1
+		return b * math.Pow(p, -1/a)
+	} else {
+		return 0
+	}
+}
+
+// # Log-Logistic distribution random variable.
+func (rnd *LCPRNG) LogLogistic(ɑ, β float) float {
+	return rnd.Dagum(1, ɑ, β)
+}
+
+// # Burr (Singh–Maddala) distribution random variable.
+func (rnd *LCPRNG) Burr(c, k, ƛ float) float {
+	if c > 0 && k > 0 && ƛ > 0 {
+		return ƛ * math.Pow(math.Pow(1-rnd.Random(), -1/k)-1, 1/c)
+	} else {
+		return 0
+	}
+}
+
 // # Poisson distribution random variable.
 //
 //	μ = σ² = ƛ
@@ -691,6 +716,10 @@ func (rnd *LCPRNG) ChiSquared(k int) (x float) {
 // # χ distribution random variable with k degrees of freedom.
 //
 // Length of k-dimensional vector with Gauss random coordinates.
+/*
+	μ  = sqrt(2) * Γ((k + 1)/2) / Γ(k/2)
+	σ² = k - μ²
+*/
 func (rnd *LCPRNG) Chi(k int) (x float) {
 	switch { // speed up by special cases
 	case k == 1:
@@ -726,7 +755,7 @@ func (rnd *LCPRNG) Gamma(ɑ float, β ...float) (g float) {
 		}
 		g += rnd.ChiSquared(int(t)) / 2 // add integer part
 		if len(β) > 0 {
-			g /= β[0]
+			g /= β[0] // scale
 		}
 	}
 	return
@@ -883,7 +912,7 @@ func (rnd *LCPRNG) Dirichlet(ɑ ...float) (d array) {
 				d[i] = rnd.Gamma(a)
 				s += d[i]
 			}
-			if s == 0 {
+			if s == 0 { //  flat Dirichlet distribution
 				for i := range d {
 					d[i] = rnd.Exponential()
 					s += d[i]
@@ -1190,8 +1219,8 @@ func (rnd *LCPRNG) Race(podium int, tuning list) (stand list) {
 
 	// ▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀▄▀
 
-	race := func(car list, tune, dir int) {
-		for l := len(car); l > 0 && finish < podium; l-- {
+	race := func(convoy list, tune, dir int) {
+		for l := len(convoy); l > 0 && finish < podium; l-- {
 			i := 0
 			if l > 1 {
 				if tune == 0 { // uniform
@@ -1200,17 +1229,17 @@ func (rnd *LCPRNG) Race(podium int, tuning list) (stand list) {
 					n, t := rnd.Choice(tune), 0
 					for i = -1; n >= 0; n -= t {
 						i++
-						t = tuning[car[i]] * dir
+						t = tuning[convoy[i]] * dir
 					}
 					tune -= t
 				}
 			}
 			if place < podium { // chequered flag
-				stand[place] = car[i]
+				stand[place] = convoy[i]
 				finish++
 			}
-			place += dir             // next place on podium
-			copy(car[i:], car[i+1:]) // remove car from track
+			copy(convoy[i:], convoy[i+1:]) // remove car from track
+			place += dir                   // next place on podium
 		}
 	}
 
@@ -1249,8 +1278,9 @@ func (rnd *LCPRNG) Forest(n int) (f string) {
 
 // # Cut deck of cards near middle.
 //
-//	μ  = len(deck) / 2
-//	σ² = len(deck) / 4
+//	n = len(deck)
+//	μ  = n / 2
+//	σ² = n / 4
 func (rnd *LCPRNG) CutDeck(deck list) (l, r list) {
 	if n := len(deck); n > 0 {
 		n = rnd.Binomial(n, 0.5)
@@ -1284,7 +1314,7 @@ func (rnd *LCPRNG) DoveTail(l, r list) (d list) {
 func (rnd *LCPRNG) RiffleShuffle(deck *list) {
 	if n := len(*deck); n > 1 {
 		// by Bayer & Diaconis (n = 8 for standard deck)
-		for n = int(math.Log2(float(n)) * 3 / 2); n > 0; n-- {
+		for n = int(math.Log2(float(n)) * 1.5); n > 0; n-- {
 			(*deck) = rnd.DoveTail(rnd.CutDeck(*deck))
 		}
 	}
@@ -1527,6 +1557,13 @@ func FallFact(n, k int) (f float) {
 	return
 }
 
+// # Rising factorial.
+//
+// Pochhammer function.
+func RiseFact(n, k int) float {
+	return FallFact(n+k-1, k)
+}
+
 // # LogGamma(n) and LogBarnesG(n) optionally scaled by ln(n).
 func LogGG(n int, scaled ...bool) (Γ, G float) {
 	switch {
@@ -1607,10 +1644,10 @@ func HypGeomDist(hits, draw, succ, size int) (prob float) {
 }
 
 // # Negative Hyper-geometric distribution probability.
-func NegHypGeomDist(draw, miss, succ, size int) (prob float) {
-	miss += draw
-	if prob = Binomial(miss-1, draw); prob != 0 {
-		if prob *= Binomial(size-miss, succ-draw); prob != 0 {
+func NegHypGeomDist(hits, miss, succ, size int) (prob float) {
+	miss += hits
+	if prob = Binomial(miss-1, hits); prob != 0 {
+		if prob *= Binomial(size-miss, succ-hits); prob != 0 {
 			prob /= Binomial(size, succ)
 		}
 	}
@@ -1631,15 +1668,15 @@ func MultiHypGeomDist(items, hits list) (prob float) {
 			i, h := 0, 0
 			if j < m {
 				i = items[j]
+				size += i
 			}
 			if j < n {
 				h = hits[j]
+				draw += h
 			}
 			if prob *= Binomial(i, h); prob == 0 {
 				return
 			}
-			size += i
-			draw += h
 		}
 		prob /= Binomial(size, draw)
 	}
@@ -1697,14 +1734,18 @@ func Ludus(sides int, dice ...int) (total, index int, prob float) {
 
 // # Race order probability.
 func RaceDist(order, weight list) (float64, *big.Rat) {
-	s := 0
+	s, l := 0, len(weight)
 	for _, w := range weight {
 		s += w
 	}
-	r := big.NewRat(1, 1)
+	r, f := big.NewRat(1, 1), list{}
 	for _, o := range order {
+		if o < 0 || o >= l || slices.Contains(f, o) {
+			return 0, nil
+		}
+		f = append(f, o)
 		w := weight[o]
-		r = r.Mul(r, big.NewRat(int64(w), int64(s)))
+		r.Mul(r, big.NewRat(int64(w), int64(s)))
 		s -= w
 	}
 	p, _ := r.Float64()
@@ -1778,8 +1819,11 @@ func (b *Babushka) Add(x float) float {
 
 // # Σ x.
 func (b *Babushka) Sum(x ...float) float {
-	for _, a := range x {
-		b.Add(a)
+	if len(x) > 0 {
+		b.Reset()
+		for _, a := range x {
+			b.Add(a)
+		}
 	}
 	return b.s
 }
@@ -1811,7 +1855,7 @@ func (rnd *LCPRNG) TriggerIndex(percentage ...int) (index int) {
 	percent := func(p int) *big.Rat {
 		return big.NewRat(int64(p), 100) // p% = p / 100
 	}
-	prob, sum, cumul := percent(100), 0, []int{}
+	prob, sum, cumul := percent(100), 0, list{}
 	for _, p := range percentage {
 		if p > 0 {
 			sum += p

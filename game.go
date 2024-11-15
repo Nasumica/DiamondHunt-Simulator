@@ -45,6 +45,8 @@ type Screen struct {
 	Kenta   bool
 	Force   int
 	Count   int
+	Hazard  bool
+	Sturm   bool
 }
 
 func (scr *Screen) History(s string) {
@@ -110,7 +112,9 @@ func (scr *Screen) Draw() int {
 const (
 	NoStrategy = iota
 	SwapCourt
+	NoRisk
 	RiskOne
+	NewRisk
 )
 
 var Strategy = SwapCourt
@@ -137,25 +141,41 @@ func (scr *Screen) Hunt() (more bool) {
 	if l := len(scr.Best); l > 0 { // test
 		j := scr.Best[0]  // get swap index
 		h := &scr.Hand[j] // card from hand
+		n := i + l
 
 		swap := !d.IsDiam
-
-		if !swap {
-			switch Strategy {
-			case SwapCourt:
-				swap = h.IsRoyal && !d.IsRoyal
-				scr.Force++
-			case RiskOne:
-				if h.IsRoyal && !d.IsRoyal {
-					n := i + l
-					swap = n >= 4
-					if !swap && scr.Kenta && n >= 3 {
-						scr.Force++
+		if !swap && h.IsRoyal && !d.IsRoyal {
+			swap = n >= 4
+			if !swap {
+				switch Strategy {
+				case SwapCourt:
+					swap = true
+				case RiskOne:
+					if scr.Kenta && n >= 3 {
 						swap = true
 					}
+				case NewRisk:
+					if scr.Kenta {
+						m := 4 - i
+						r := scr.RHand
+						swap = m-r <= 1
+						if true && !swap {
+							if l == 1 && i == 1 && scr.Diam[0].Kind == 11 {
+								// if i == 1 && scr.Diam[0].Load > 1 {
+								swap = h.Kind == 12
+								// swap = h.Load > 1
+								if swap {
+									scr.Sturm = true
+								}
+							}
+						}
+					}
+				}
+				if swap {
+					scr.Hazard = swap
+					scr.Force++
 				}
 			}
-
 		}
 
 		if swap { // swap
@@ -197,9 +217,14 @@ func (scr *Screen) Hunt() (more bool) {
 	return
 }
 
+// var flip bool
+
 // Play one hand.
 func (scr *Screen) Play(bet float64) HuntResponse {
 	Dealer.Reset()
+	// if flip = !flip; flip {
+	// Dealer.AddCheats("Q♦", "Q♠", "Q♥", "Q♣", "J♦", "2♦")
+	// }
 	// Dealer.Hide("J♦", "Q♦", "T♦", "9♦", "8♦", "7♦", "6♦", "5♦", "4♦", "3♦", "2♦", "A♦")
 	// Dealer.AddCheats("K♦")
 	// Dealer.Release()
@@ -219,6 +244,7 @@ type HuntResponse struct {
 	Count    int   // number of ♦
 	Diams    int
 	Waste    int
+	Hazard   int
 	Royals   int     // court cards
 	Straight bool    // is straight?
 	Cat      string  // category
@@ -239,15 +265,18 @@ const (
 	cat_four     = "(2) ROYAL FOUR"
 	cat_royal    = "(3) ROYAL CARD"
 	cat_court    = "(0) + (1) + (2)"
+	cat_win      = "2♦ + 4♦"
 	cat_free     = "(3) + 3♦"
 )
 
 const (
 	win_handy    = 50000
-	win_straight = 6000
-	win_four     = 850
+	win_straight = 2850
+	win_four     = 800
 	win_royal    = 1
 	win_free     = 1
+	win_2        = 0.5
+	win_3        = 0
 	win_4        = 4
 )
 
@@ -289,6 +318,8 @@ func (scr *Screen) Eval(bet float64) (resp HuntResponse) {
 	resp.Cat = cat + "♦"
 
 	switch resp.Count {
+	case 2:
+		resp.Win = win_2
 	case 3:
 		resp.Free = win_free
 	case 4:
@@ -303,6 +334,9 @@ func (scr *Screen) Eval(bet float64) (resp HuntResponse) {
 				} else {
 					resp.JackPot = win_straight
 					resp.Name = cat_straight
+				}
+				if scr.Hazard {
+					resp.Hazard++
 				}
 			} else {
 				resp.JackPot = win_four
@@ -331,7 +365,13 @@ func (scr *Screen) Eval(bet float64) (resp HuntResponse) {
 	resp.Win *= bet
 	resp.JackPot *= bet
 	resp.Free *= bet
-	resp.Total = resp.Win + resp.JackPot + resp.Free
+	resp.Total = resp.Win + resp.JackPot //+ resp.Free
+
+	if scr.Sturm {
+		AddCat("sturm", resp.Total+resp.Free)
+
+		scr.Sturm = false
+	}
 
 	return
 }
@@ -363,27 +403,27 @@ func DiamondHunt(iter int, chips ...float64) {
 
 		play := 0
 		for run := 1; run > 0; run-- {
+			scr.Sturm = false
 			play++
 			ans := scr.Play(chip)
 			opens[ans.Open]++
 			// chart[ans.Open][ans.Count]++
 			chart[ans.Open][ans.Close]++
-			jp := ans.JackPot + ans.Free
+			jp := ans.JackPot
 			if scr.Force > 0 {
-				AddCat("force", float64(scr.Force))
+				AddCat("force", 0)
+			}
+			if ans.Win > 0 {
+				AddCat(cat_win, ans.Win)
 			}
 			if ans.Total > 0 {
 				win.Add(ans.Total)
 				AddCat("total", ans.Total)
 			}
 			if ans.Free > 0 {
-				AddCat(cat_free, float64(ans.Free))
+				AddCat(cat_free, 0)
 			}
-			if ans.Count == 3 {
-				AddCat(ans.Cat, ans.Free)
-			} else {
-				AddCat(ans.Cat, ans.Win)
-			}
+			AddCat(ans.Cat, ans.Win)
 			if ans.Name != "" {
 				AddCat(ans.Name, jp)
 			}
@@ -394,6 +434,10 @@ func DiamondHunt(iter int, chips ...float64) {
 			if ans.Waste > 0 {
 				AddCat("waste", 0)
 			}
+			if ans.Hazard > 0 {
+				AddCat("hazard", 0)
+			}
+			run += int(ans.Free)
 		}
 
 		AddCat("play", float64(play))
@@ -425,6 +469,23 @@ func DiamondHunt(iter int, chips ...float64) {
 		}
 	*/
 	fmt.Println()
+	fmt.Printf("\n%d tickets,  %d free games,  %d max free\n", play.Cnt, int(play.Sum)-play.Cnt, int(play.Max)-1)
+	fmt.Print("strategy: ")
+	switch Strategy {
+	case SwapCourt:
+		fmt.Print("swap low diamond with strongest court card")
+	case NoRisk:
+		fmt.Print("no risk")
+	case RiskOne:
+		fmt.Print("risk one diamond lost")
+	case NewRisk:
+		fmt.Print("optimal")
+	default:
+		fmt.Print("no swap diamond")
+	}
+	fmt.Println()
+	fmt.Println()
+	fmt.Printf("%-30s  %10.2f\n", "2♦", win_2)
 	fmt.Printf("%-30s  %10d\n", "3♦", win_free)
 	fmt.Printf("%-30s  %10d\n", "4♦", win_4)
 	fmt.Printf("%-30s  %10d\n", cat_handy, win_handy)
@@ -432,28 +493,48 @@ func DiamondHunt(iter int, chips ...float64) {
 	fmt.Printf("%-30s  %10d\n", cat_four, win_four)
 	fmt.Printf("%-30s  %10d\n", cat_royal, win_royal)
 	fmt.Println()
-	spisak := []string{"0♦", "1♦", "2♦", "3♦", "4♦",
-		cat_handy, cat_straight, cat_four, cat_royal,
-		"total", "", cat_court, cat_free, "", "waste", "force"}
+	fmt.Println("category                         count              sum     probability         rtp             rate")
+	spisak := []string{"-", "0♦", "1♦", "2♦", "3♦", "4♦",
+		cat_handy, cat_straight, cat_four, cat_royal, "-",
+		"total",
+		"", cat_win, cat_court, cat_free, "", "", "sturm", "force", "waste", "hazard",
+		"", "JDQ"}
+	counter := play.Sum
 	for _, d := range spisak {
+		if d == "-" {
+			fmt.Print("----------------------------------------------------------------------------------------------------")
+		}
+		if d == "total" {
+			counter = play.Sum
+		}
 		s, e := CatStat[d]
 		if e {
-			prob := float64(s.Cnt) / play.Sum
+			prob := float64(s.Cnt) / counter
 			rtp := s.Sum / bet.Sum
-			fmt.Printf("%-26s  %10d  %13.9f%%  %9.5f%%  %15.2f", d, s.Cnt, 100*prob, 100*rtp, 1/prob)
+			fmt.Printf("%-26s  %10d  ", d, s.Cnt)
+			if s.Sum > 0 {
+				fmt.Printf("%15.2f", s.Sum)
+			} else {
+				fmt.Printf("%15s", "")
+			}
+			fmt.Printf("  %13.9f%%  ", 100*prob)
+			if rtp > 0 {
+				fmt.Printf("%9.5f%%", 100*rtp)
+			} else {
+				fmt.Printf("%10s", "")
+			}
+			fmt.Printf("  %15.2f", 1/prob)
 		}
 		fmt.Println()
+		if d == "force" {
+			counter = float64(s.Cnt)
+		}
 	}
-	free := CatStat[cat_free].Sum
-	rtp := (win.Sum - free) / (bet.Sum - free)
+	// free := CatStat[cat_free].Sum
+	// twin := win.Sum - free
+	// tbet := bet.Sum - free
+	// rtp := twin / tbet
 	fmt.Println()
-	if Strategy == SwapCourt {
-		fmt.Println("strategy: swap low diamond with strongest court card")
-	} else if Strategy == RiskOne {
-		fmt.Println("strategy: risk one diamond lost")
-	} else {
-		fmt.Println("no swap diamond")
-	}
-	fmt.Printf("\nrtp = (%.0f - %.0f) / (%.0f - %.0f) =  %.2f%%\n", win.Sum, free, bet.Sum, free, 100*rtp)
+	// fmt.Printf("\nrtp = (%.0f - %.0f) / (%.0f - %.0f) = %.0f / %.0f =  %.2f%%\n", win.Sum, free, bet.Sum, free, twin, tbet, 100*rtp)
 	fmt.Println()
 }
