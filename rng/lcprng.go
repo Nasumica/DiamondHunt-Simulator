@@ -1547,7 +1547,7 @@ func Factorial(n int) float {
 
 // # Falling factorial.
 //
-//	n! / (n - k)!
+//	n · (n - 1) · (n - 2) ··· (n - k + 1) , k factors
 func FallFact(n, k int) (f float) {
 	if n < 0 || k <= n {
 		for f = 1; k > 0; n, k = n-1, k-1 {
@@ -1560,6 +1560,8 @@ func FallFact(n, k int) (f float) {
 // # Rising factorial.
 //
 // Pochhammer function.
+//
+//	n · (n + 1) · (n + 2) ··· (n + k - 1), k factors
 func RiseFact(n, k int) float {
 	return FallFact(n+k-1, k)
 }
