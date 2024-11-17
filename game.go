@@ -159,7 +159,7 @@ func (scr *Screen) Hunt() (more bool) {
 						m := 4 - i
 						r := scr.RHand
 						swap = m-r <= 1
-						if true && !swap {
+						if false && !swap {
 							if l == 1 && i == 1 && scr.Diam[0].Kind == 11 {
 								// if i == 1 && scr.Diam[0].Load > 1 {
 								swap = h.Kind == 12

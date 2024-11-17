@@ -74,7 +74,7 @@ func main() {
 	sw.Start()
 	fmt.Println()
 	million := 1000 * 1000
-	iter := 1000 * million
+	iter := 10000 * million
 
 	// Strategy = SwapCourt
 	// Strategy = NoStrategy
